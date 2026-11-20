@@ -1,0 +1,54 @@
+{
+  "benchmark_id": "phase8_17_local_http_replay_2026-10-12",
+  "measured_at": "2026-10-12",
+  "environment": {
+    "kind": "isolated sandbox runtime",
+    "python_version": "3.13.5",
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "cpu_count_visible_to_runtime": 5,
+    "api_workers": 2,
+    "inference_threads_per_worker": 1,
+    "cache": "disabled",
+    "local_intel": "disabled",
+    "deep_analysis": "disabled",
+    "model_version": "v20261001_104517",
+    "model_sha256": "187403348b4aee338f6dec6f4c4c77e38c41266235789068a90a3295bb415cba",
+    "fast_path_enabled": false
+  },
+  "corpus": {
+    "path": "data/realworld_load_corpus.json",
+    "count": 2031,
+    "sha256": "35d892b12624d55a9f0fe4a8f1fcec0be9e36dc654ea80046400b185faff9fea",
+    "source_role": "captured/supplied real URL strings; includes historical threat-feed sample and labeled dataset URLs",
+    "listed_urls_visited": false,
+    "note": "Replay strings are inputs to the local parser/model only; no target URLs were requested."
+  },
+  "single_url_http": {
+    "requests": 200,
+    "concurrency": 20,
+    "successful": 200,
+    "failed": 0,
+    "elapsed_seconds": 2.7202,
+    "requests_per_second": 73.52,
+    "p95_ms": 412.23,
+    "p99_ms": 499.96
+  },
+  "batch_http": {
+    "batch_size": 64,
+    "requests": 100,
+    "concurrency": 20,
+    "successful_batches": 100,
+    "failed_batches": 0,
+    "decisions": 6400,
+    "elapsed_seconds": 9.5948,
+    "decisions_per_second": 667.02,
+    "p95_batch_ms": 2065.64,
+    "p99_batch_ms": 2074.33
+  },
+  "interpretation": "Actual local HTTP measurement only; not a cloud/cluster capacity result. The full calibrated ensemble is used because the active model has no separately validated fast-stage calibrator.",
+  "scale_target": {
+    "10_million_decisions_in_15s_rps": 666666.6666666666,
+    "10_million_decisions_in_10s_rps": 1000000,
+    "verified": false
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "generated_at": "2026-11-18T06:59:40.405838+00:00",
+  "model_version": "v20261117_182148",
+  "threshold": 0.7325,
+  "training_domain_count": 12908,
+  "positive_sample": {
+    "support": 51,
+    "accuracy": 0.9215686274509803,
+    "precision": 1.0,
+    "recall": 0.9215686274509803,
+    "f1": 0.9591836734693877,
+    "false_positive_rate": 0.0,
+    "tp": 47,
+    "tn": 0,
+    "fp": 0,
+    "fn": 4
+  },
+  "benign_sample": {
+    "support": 0,
+    "accuracy": 0.0,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "false_positive_rate": 0.0,
+    "tp": 0,
+    "tn": 0,
+    "fp": 0,
+    "fn": 0
+  },
+  "benign_label_role": "not_requested",
+  "combined_metrics_only_if_benign_labels_are_ground_truth": null,
+  "urlhaus": {
+    "enabled": false
+  },
+  "sources": [
+    {
+      "name": "captured-realworld-positive",
+      "path": "data\\realworld\\archive\\openphish_20261005_unseen.csv",
+      "sha256": "9fcabaf27c44809bc6915bb7939a302e8635731623ed00a367419745f2c81deb",
+      "entries_seen": 51,
+      "unseen_domains_available": 51,
+      "listed_urls_visited": false
+    }
+  ],
+  "visited_listed_urls": false,
+  "method": "Captured/live feed replay after exact normalized URL and registrable-domain exclusion against the model training domains.",
+  "limitations": [
+    "OpenPhish/URLhaus metrics are positive-class recall only.",
+    "Tranco is a popularity ranking, not a benign ground-truth label.",
+    "Strict real-world precision requires independently verified benign labels or a reputation-confirmed evaluation population."
+  ]
+}

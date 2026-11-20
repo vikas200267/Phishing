@@ -1,0 +1,39 @@
+{
+  "created_at": "2026-11-19T08:14:28.044112+00:00",
+  "dataset_role": "candidate_training_only",
+  "source_dataset": "LegitPhish Dataset, Version 2",
+  "source_url": "https://data.mendeley.com/datasets/hx4m73v2sf/2",
+  "license": "CC BY 4.0",
+  "authors": [
+    "Rachana Potpelwar",
+    "Uday Kulkarni",
+    "Jaishri Waghmare"
+  ],
+  "source_timestamp_status": "no authentic per-URL timestamps; observed_at intentionally blank",
+  "sampling": "All legitimate rows plus deterministic SHA-256(URL)-ordered phishing sample equal in size to the legitimate class.",
+  "balance_seed": "SHA-256(normalized URL); no random state required",
+  "counts_before_sampling": {
+    "0": 29377,
+    "1": 48640
+  },
+  "balanced_legitphish_rows": 58754,
+  "production_training_rows": 1308,
+  "conflicting_url_rows_removed": 0,
+  "output_rows": 60062,
+  "output_label_counts": {
+    "0": 30104,
+    "1": 29958
+  },
+  "output_sha256": "d421aea5b56f5c34e16c89f7d634c4f8d808bf014a2ad24351bb930e1aaa060b",
+  "inputs": {
+    "legitphish_train": {
+      "path": "data\\training\\legitphish_v2_train.csv",
+      "sha256": "738c91376ff7ba01e2efc2bcbc395ed5e37780b671d7d2757779ea7c8dd515e1"
+    },
+    "production_training": {
+      "path": "data\\training\\production_training.csv",
+      "sha256": "48326e6556950e4830344e307a08be3664367e2979ec4c7a916d14c89211e0a4"
+    }
+  },
+  "warning": "Cross-source mixture is not temporally qualified; training and serving metrics must be evaluated independently."
+}

@@ -1,0 +1,36 @@
+{
+  "dataset": "DeepInstinct/DeepURLBench",
+  "source_url": "https://huggingface.co/datasets/DeepInstinct/DeepURLBench",
+  "license": "CC BY-NC 4.0; independent research benchmark only; do not use to train or ship the production model or redistribute source rows",
+  "timestamp_column": "first_seen",
+  "timestamp_provenance": "source_provided",
+  "timestamp_semantics": "source-provided first-observed time; timezone unspecified in the dataset schema",
+  "timestamp_timezone": "unspecified in source schema",
+  "label_column": "label",
+  "label_mapping": {
+    "0": "benign",
+    "1": "phishing"
+  },
+  "cutoff": "2022-01-01 00:00:00",
+  "sampling": {
+    "method": "deterministic per-row-group sample allocated at source prevalence",
+    "seed": 20261118,
+    "cap_per_row_group": 1600,
+    "rows_scanned": 40194045,
+    "rows_sampled_after_url_dedup": 63435
+  },
+  "source_parquet": [
+    {
+      "path": "data\\realworld\\external\\deepurlbench\\deepurlbench_0000.parquet",
+      "sha256": "de344c0b7000483cca57fcbeb11a727dafe40fa670220e17567f008c5b120ff7"
+    },
+    {
+      "path": "data\\realworld\\external\\deepurlbench\\deepurlbench_0001.parquet",
+      "sha256": "f39c11f915169accf5bd8e553026cd006f7b93de7da0f914a36ee309f7f4dfce"
+    }
+  ],
+  "rows": 63435,
+  "sha256": "29385432eb68bb6fd67851b2cc790e30e58472ca12e7137c22a500962426b11d",
+  "listed_urls_visited": false,
+  "production_training_use": false
+}

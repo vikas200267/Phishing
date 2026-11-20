@@ -1,0 +1,200 @@
+{
+  "model_version": "v20261117_182148",
+  "threshold": 0.7325,
+  "rows": 21,
+  "unique_registrable_domains": 21,
+  "model_false_positives": 3,
+  "api_policy_false_positives": 0,
+  "policy_adjusted_benign": 21,
+  "predictions": [
+    {
+      "url": "https://www.google.com/",
+      "label": 0,
+      "model_risk_score": 0.0008902591075714435,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.wikipedia.org/",
+      "label": 0,
+      "model_risk_score": 0.0009214980088085036,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://github.com/",
+      "label": 0,
+      "model_risk_score": 0.9659037626804643,
+      "model_prediction": 1,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.microsoft.com/",
+      "label": 0,
+      "model_risk_score": 0.0008894860713594521,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.python.org/",
+      "label": 0,
+      "model_risk_score": 0.00088927292121886,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.nasa.gov/",
+      "label": 0,
+      "model_risk_score": 0.0008581788594604795,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.apple.com/",
+      "label": 0,
+      "model_risk_score": 0.0009048739184081449,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.adobe.com/",
+      "label": 0,
+      "model_risk_score": 0.0008855766324019055,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.mozilla.org/",
+      "label": 0,
+      "model_risk_score": 0.0009185067889702655,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.cloudflare.com/",
+      "label": 0,
+      "model_risk_score": 0.0009933852634382207,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.mit.edu/",
+      "label": 0,
+      "model_risk_score": 0.0009016146982226234,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.stanford.edu/",
+      "label": 0,
+      "model_risk_score": 0.0009139027528217408,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.harvard.edu/",
+      "label": 0,
+      "model_risk_score": 0.0008917097460633571,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.debian.org/",
+      "label": 0,
+      "model_risk_score": 0.0009133635622258274,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://ubuntu.com/",
+      "label": 0,
+      "model_risk_score": 0.9549435199696831,
+      "model_prediction": 1,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.who.int/",
+      "label": 0,
+      "model_risk_score": 0.0008996848053964657,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.un.org/",
+      "label": 0,
+      "model_risk_score": 0.0008948601929683767,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://european-union.europa.eu/",
+      "label": 0,
+      "model_risk_score": 0.9717040665539294,
+      "model_prediction": 1,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.ietf.org/",
+      "label": 0,
+      "model_risk_score": 0.0008947730812550018,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.kernel.org/",
+      "label": 0,
+      "model_risk_score": 0.0008933742178863627,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    },
+    {
+      "url": "https://www.nist.gov/",
+      "label": 0,
+      "model_risk_score": 0.0008614771832676864,
+      "model_prediction": 0,
+      "homepage_policy_applied": true,
+      "api_verdict": "benign",
+      "api_decision": "verified_official_homepage_root"
+    }
+  ]
+}

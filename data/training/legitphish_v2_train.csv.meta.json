@@ -1,0 +1,49 @@
+{
+  "source_dataset": "LegitPhish Dataset, Version 2",
+  "doi": "10.17632/hx4m73v2sf.2",
+  "source_page": "https://data.mendeley.com/datasets/hx4m73v2sf/2",
+  "license": "CC BY 4.0",
+  "authors": [
+    "Rachana Potpelwar",
+    "Uday Kulkarni",
+    "Jaishri Waghmare"
+  ],
+  "source_label_mapping": {
+    "0": "phishing",
+    "1": "legitimate"
+  },
+  "phishguard_label_mapping": {
+    "0": "legitimate",
+    "1": "phishing"
+  },
+  "source_published_at": "2025-05-22",
+  "source_row_count": 101219,
+  "labeled_rows": 101218,
+  "valid_http_url_rows": 101151,
+  "invalid_http_urls_removed": 67,
+  "cleaned_rows_before_domain_filter": 98967,
+  "removed_for_active_release_or_evaluation_domain_overlap": 1838,
+  "removed_conflicting_normalized_url_groups": 0,
+  "removed_rows_in_conflicting_groups": 0,
+  "removed_exact_duplicate_rows": 346,
+  "independent_evaluation_sources_reserved": [
+    "data\\release_gate_v1.csv",
+    "data\\frozen_regression.csv",
+    "data\\historical_regression_v1.csv",
+    "data\\realworld\\archive\\openphish_20261005_unseen.csv"
+  ],
+  "observed_at_is_blank_because_source_has_no_per_url_timestamp": true,
+  "listed_urls_visited": false,
+  "split_method": "sha256(registrable_domain) mod 5; one residue reserved for evaluation",
+  "holdout_domains_are_removed_from_candidate_training_via_exclusions_file": "data\\realworld\\evaluations\\legitphish_v2_exclusions.csv",
+  "generated_at": "2026-11-17T18:14:00.830773+00:00",
+  "dataset_role": "training_only",
+  "path": "data\\training\\legitphish_v2_train.csv",
+  "rows": 78017,
+  "unique_registrable_domains": 45644,
+  "label_counts": {
+    "1": 48640,
+    "0": 29377
+  },
+  "sha256": "738c91376ff7ba01e2efc2bcbc395ed5e37780b671d7d2757779ea7c8dd515e1"
+}

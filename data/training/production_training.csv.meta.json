@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-10-05T16:07:37.253736+00:00",
+  "rows": 1308,
+  "phishing_rows": 581,
+  "legitimate_rows": 727,
+  "unique_domains": 537,
+  "removed_by_eval_exact_or_domain": 792,
+  "source_files": [
+    {
+      "path": "data/source/extracted_phishing_dataset.csv",
+      "sha256": "a3469827b08568e650ca8fa75aa53855d37d72be08a80a30bca3d8b2b840d4d5"
+    },
+    {
+      "path": "data/source/extracted_legitmate_dataset.csv",
+      "sha256": "ec632025565d964b210e1b8e70d029f6faaad7a0ea33b80a22611110cec02dec"
+    },
+    {
+      "path": "data/history/openphish_20261001_snapshot.csv",
+      "sha256": "64502ceaa397b695e55aa11684cf8be28fda634e952b31c97d53eb381e46bed2"
+    }
+  ],
+  "evaluation_exclusions": [
+    "data/realworld/archive/openphish_20261005_unseen.csv",
+    "data/release_gate_v1.csv"
+  ],
+  "exclude_frozen": true,
+  "synthetic_training_data": false,
+  "benign_seed_allowed": false
+}

@@ -1,0 +1,13 @@
+{
+  "dataset": "data\\realworld\\trusted_homepages.csv",
+  "sha256": "d0aee4050c880e270c085df71afa4df6a79879b22d2ee0b100d27874091d6694",
+  "rows": 21,
+  "purpose": "Exact HTTPS origin-root exceptions for public API classification; this list is not a model training dataset.",
+  "reviewed_at": "2026-11-17T18:26:13.200110+00:00",
+  "evidence": "User-supplied controlled test for six named sites; additional official homepage identities cross-checked using web search open results.",
+  "limitations": [
+    "Direct HTTP fetch from this runtime failed DNS resolution.",
+    "Exceptions match only the exact hostname HTTPS root without query or fragment.",
+    "Threat intelligence and exact verified feedback remain higher priority."
+  ]
+}

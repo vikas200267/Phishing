@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-11-18T14:45:18.614925+00:00",
+  "model_version": "v20261118_143528",
+  "threshold": 0.5,
+  "training_domain_count": 14261,
+  "positive_sample": {
+    "support": 51,
+    "accuracy": 0.803921568627451,
+    "precision": 1.0,
+    "recall": 0.803921568627451,
+    "f1": 0.8913043478260869,
+    "false_positive_rate": 0.0,
+    "tp": 41,
+    "tn": 0,
+    "fp": 0,
+    "fn": 10
+  },
+  "benign_sample": {
+    "support": 21,
+    "accuracy": 1.0,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "false_positive_rate": 0.0,
+    "tp": 0,
+    "tn": 21,
+    "fp": 0,
+    "fn": 0
+  },
+  "benign_label_role": "independently_verified_captured_labels",
+  "combined_metrics_only_if_benign_labels_are_ground_truth": null,
+  "urlhaus": {
+    "enabled": false
+  },
+  "sources": [
+    {
+      "name": "captured-realworld-positive",
+      "path": "data\\realworld\\archive\\openphish_20261005_unseen.csv",
+      "sha256": "9fcabaf27c44809bc6915bb7939a302e8635731623ed00a367419745f2c81deb",
+      "entries_seen": 51,
+      "unseen_domains_available": 51,
+      "listed_urls_visited": false
+    },
+    {
+      "name": "captured-realworld-benign",
+      "path": "data\\realworld\\legitimate_challenge.csv",
+      "sha256": "9cf20bab77aa775b1219a5bb51142b04832f4856ad732400d3b0f3fd848d9fb9",
+      "entries_seen": 21,
+      "unseen_domains_available": 21,
+      "role": "independently_verified"
+    }
+  ],
+  "visited_listed_urls": false,
+  "method": "Captured/live feed replay after exact normalized URL and registrable-domain exclusion against the model training domains.",
+  "limitations": [
+    "OpenPhish/URLhaus metrics are positive-class recall only.",
+    "Tranco is a popularity ranking, not a benign ground-truth label.",
+    "Strict real-world precision requires independently verified benign labels or a reputation-confirmed evaluation population."
+  ]
+}

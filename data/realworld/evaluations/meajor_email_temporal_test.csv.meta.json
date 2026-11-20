@@ -1,0 +1,49 @@
+{
+  "dataset": "MeAJOR: Merged email Assets from Joint Open-source Repositories",
+  "doi": "10.5281/zenodo.18471483",
+  "source_url": "https://zenodo.org/records/18471483",
+  "license": "CC BY 4.0 (attribution required)",
+  "authors": [
+    "Francisco Cardoso",
+    "Jo\u00e3o Vitorino",
+    "Paulo Mendes",
+    "Eva Maia",
+    "Isabel Pra\u00e7a"
+  ],
+  "source_label_mapping": {
+    "0": "benign",
+    "1": "phishing"
+  },
+  "raw_rows": 108685,
+  "unlabeled_rows_removed": 1,
+  "rows_with_unusable_or_out_of-range_dates_removed": 1076,
+  "conflicting_exact_content_rows_removed": 0,
+  "exact_duplicate_content_rows_removed": 4137,
+  "raw_sha256": "5bf5371897ab4e4aa7ac6d8f499869e6c32e4456ed09636731e4069947b69f4f",
+  "timestamp_field": "date (RFC 2822 email message timestamp parsed as UTC)",
+  "timestamp_year_policy": {
+    "min": 1998,
+    "max": 2010
+  },
+  "temporal_cutoff_exclusive_for_training": "2007-01-01T00:00:00+00:00",
+  "exact_content_hash_overlap": 0,
+  "email_body_anonymized_by_source": true,
+  "listed_urls_visited": false,
+  "generated_at": "2026-11-18T06:48:36.400067+00:00",
+  "known_source_scope": "The v2 Zenodo file currently contains source values trec5, trec6, and trec7; results are specific to this released file.",
+  "dataset_role": "temporal_evaluation_only_at_or_after_cutoff",
+  "path": "data\\realworld\\evaluations\\meajor_email_temporal_test.csv",
+  "rows": 42561,
+  "label_counts": {
+    "0": 19327,
+    "1": 23234
+  },
+  "source_counts": {
+    "trec5": 6,
+    "trec7": 42555
+  },
+  "timestamp_coverage": 1.0,
+  "timestamp_start": "2007-01-01T05:41:37+00:00",
+  "timestamp_end": "2010-06-24T23:02:57+00:00",
+  "sha256": "b34637fce345ad168241eb73fcbecbf75cc05067bb8ce4cb1d5d4fd6c1d5d248"
+}

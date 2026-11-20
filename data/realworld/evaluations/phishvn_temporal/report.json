@@ -1,0 +1,47 @@
+{
+  "dataset": "PhishVN v5, official URL train/test folds, gold/silver labels only",
+  "source_url": "https://data.mendeley.com/datasets/b97hxbxtpd/5",
+  "doi": "10.17632/b97hxbxtpd.5",
+  "license": "CC BY 4.0; attribution required; source data is retained locally and ignored by git",
+  "attribution": "Thai Nguyen Vu; upstream sources: NCSC Tin Nhiem Mang, ChongLuaDao, and Tranco",
+  "timestamp_column": "event_time",
+  "timestamp_provenance": "source_attested",
+  "timestamp_semantics": "source-attested collection date of detection or organization certification; scraped_at is retrieval time and excluded",
+  "timestamp_timezone": "UTC date normalization; source supplies calendar dates without time-of-day",
+  "cutoff": "2023-01-01T00:00:00+00:00",
+  "split_method": "official PhishVN registrable-domain group-aware folds; train additionally restricted to event_time before cutoff; test restricted to event_time on/after cutoff",
+  "label_mapping": {
+    "0": "benign",
+    "1": "phishing"
+  },
+  "tier_filter": [
+    "gold",
+    "silver"
+  ],
+  "train_rows": 3183,
+  "test_rows": 845,
+  "train_class_counts": {
+    "0": 1111,
+    "1": 2072
+  },
+  "test_class_counts": {
+    "0": 358,
+    "1": 487
+  },
+  "train_domain_count": 2055,
+  "test_domain_count": 559,
+  "registrable_domain_overlap": 0,
+  "exact_url_overlap": 0,
+  "train_start": "2020-02-08 00:00:00+00:00",
+  "train_end": "2022-12-27 00:00:00+00:00",
+  "test_start": "2023-02-07 00:00:00+00:00",
+  "test_end": "2026-03-25 00:00:00+00:00",
+  "source_files_sha256": {
+    "train": "568e788eda4bdf62531adcddd093373ef6a1e97feec1354063ae337325367b61",
+    "test": "b692882e8ae26b2c0b217c090e92d3a19307a26acbfb3c8c89692db26d409bc9"
+  },
+  "dataset_sha256": "b7fb0bd9a0bae56cdfd5cd2ee6bc7820607d08ab6008c76d791c1dc4fb2d2e74",
+  "generated_at": "2026-11-18T10:30:37.304400+00:00",
+  "listed_urls_visited": false,
+  "production_model_trained_on_this_data": false
+}

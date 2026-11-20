@@ -1,0 +1,11 @@
+{
+  "suspicious_tokens": ["login","signin","verify","verification","secure","security","account","update","confirm","password","credential","wallet","bank","payment","invoice","billing","unlock","suspend","authenticate","webscr","bonus","gift","free","support","alert","recover","reset","validate","claim","refund","microsoft","office365","paypal","apple","google","amazon","netflix","docusign","dropbox","instagram","facebook","twitter","linkedin","telegram","whatsapp","crypto","coinbase","binance","metamask","otp","2fa","mfa","kyc","transaction"],
+  "shorteners": ["bit.ly","tinyurl.com","t.co","goo.gl","ow.ly","is.gd","buff.ly","cutt.ly","rebrand.ly","shorturl.at","rb.gy","s.id","lnkd.in"],
+  "common_tlds": ["com","org","net","edu","gov","mil","io","ai","app","dev","co","me","info","biz","xyz","site","online","top","club","shop","store","live","tech","in","uk","de","fr","jp","cn","ru","br","au","ca"],
+  "high_risk_tlds": ["top","click","gq","tk","ml","cf","ga","work","rest","fit","support","download","zip","mov","country","stream"],
+  "brands": ["paypal","apple","google","microsoft","office","outlook","amazon","facebook","instagram","twitter","linkedin","netflix","dropbox","docusign","adobe","steam","coinbase","binance","metamask","bank","irs","gov","chase","wellsfargo","visa","mastercard"],
+  "common_root_hosts": ["google.com","microsoft.com","apple.com","amazon.com","facebook.com","paypal.com","github.com","linkedin.com","twitter.com","instagram.com"],
+  "suspicious_extensions": [".exe",".scr",".zip",".rar",".7z",".js",".vbs",".iso",".img",".lnk",".hta",".apk",".dmg",".msi"],
+  "two_part_suffixes": ["co.uk","org.uk","ac.uk","gov.uk","com.au","net.au","org.au","co.in","com.br","co.jp","co.nz","co.za"],
+  "confusable_map": {"а":"a","е":"e","о":"o","р":"p","с":"c","х":"x","у":"y","к":"k","м":"m","н":"h","т":"t","і":"i","ј":"j","ο":"o","α":"a","ρ":"p","χ":"x","ν":"v","μ":"m","κ":"k","ι":"i","τ":"t","ε":"e","σ":"s","ɡ":"g","ⅼ":"l"}
+}

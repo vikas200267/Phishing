@@ -1,0 +1,62 @@
+{
+  "generated_at": "2026-11-17T18:32:23.891221+00:00",
+  "model_version": "v20261117_182148",
+  "model_sha256": "64ecfc9c067aa3f45a971cf38129b5edf8f040354258e611dc878fc6a3bb34dc",
+  "dataset_path": "data\\realworld\\evaluations\\legitphish_v2_holdout.csv",
+  "dataset_sha256": "8a749b4d40c3447ed7b0b90ec9869803fef7a78f4b5980fa69bfef5749034654",
+  "rows": 20950,
+  "unique_urls": 20950,
+  "unique_registrable_domains": 11434,
+  "label_counts": {
+    "0": 7366,
+    "1": 13584
+  },
+  "observation_time_coverage": 0.0,
+  "threshold": 0.7325,
+  "metrics_at_model_threshold": {
+    "accuracy": 0.9979474940334129,
+    "precision": 0.9993362342355631,
+    "recall": 0.9974970553592462,
+    "f1": 0.9984157978115905,
+    "roc_auc": 0.9998765137756099,
+    "pr_auc": 0.9999292846388262,
+    "brier_score": 0.00228729537329808,
+    "false_positive_rate": 0.0012218300298669563,
+    "false_negative_rate": 0.002502944640753828,
+    "tp": 13550,
+    "tn": 7357,
+    "fp": 9,
+    "fn": 34,
+    "threshold": 0.7325
+  },
+  "metrics_at_0_5": {
+    "accuracy": 0.9979952267303103,
+    "precision": 0.9992626456274886,
+    "recall": 0.9976442873969376,
+    "f1": 0.998452810727179,
+    "roc_auc": 0.9998765137756099,
+    "pr_auc": 0.9999292846388262,
+    "brier_score": 0.00228729537329808,
+    "false_positive_rate": 0.0013575889220743959,
+    "false_negative_rate": 0.002355712603062426,
+    "tp": 13552,
+    "tn": 7356,
+    "fp": 10,
+    "fn": 32,
+    "threshold": 0.5
+  },
+  "score_quantiles": {
+    "0.0": 0.0008333126807342801,
+    "0.1": 0.0008354797714751483,
+    "0.25": 0.0008373108153206675,
+    "0.5": 0.973027008195422,
+    "0.75": 0.9730833283635556,
+    "0.9": 0.9731051012973828,
+    "0.99": 0.9731381601875674,
+    "1.0": 0.9731492914429334
+  },
+  "model_training_domain_count": 12908,
+  "overlap_with_model_training_domains": 0,
+  "domain_disjoint_from_model_training": true,
+  "evaluation_urls_visited": false
+}
