@@ -1,18 +1,33 @@
-# This .gitignore is appropriate for repositories deployed to GitHub Pages and using
-# a Gemfile as specified at https://github.com/github/pages-gem#conventional
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+data/feedback.sqlite3
+data/feedback.jsonl
+data/verified_feedback.csv
+data/feeds/
+models/*/model.joblib
 
-# Basic Jekyll gitignores (synchronize to Jekyll.gitignore)
+data/realworld/external/meajor_cleaned_preprocessed.csv
+data/realworld/external/meajor_cleaned_preprocessed.csv.meta.json
+data/training/meajor_email_train.csv
+data/training/meajor_email_train.csv.meta.json
+data/realworld/evaluations/meajor_email_temporal_test.csv
+data/realworld/evaluations/meajor_email_temporal_test.csv.meta.json
+
+data/realworld/external/deepurlbench/
+data/realworld/external/deepurlbench_temporal_sample.csv
+data/realworld/external/deepurlbench_temporal_sample.csv.meta.json
+
+data/realworld/evaluations/deepurlbench_temporal/
+
+data/realworld/external/phishvn/
+data/realworld/evaluations/phishvn_temporal/
+
+# Legacy GitHub Pages/Jekyll files from the original repository.
 _site/
 .sass-cache/
 .jekyll-cache/
 .jekyll-metadata
-
-# Additional Ruby/bundler ignore for when you run: bundle install
-/vendor
-
-# Specific ignore for GitHub Pages
-# GitHub Pages will always use its own deployed version of pages-gem 
-# This means GitHub Pages will NOT use your Gemfile.lock and therefore it is
-# counterproductive to check this file into the repository.
-# Details at https://github.com/github/pages-gem/issues/768
+/vendor/
 Gemfile.lock

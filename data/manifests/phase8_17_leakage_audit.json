@@ -1,0 +1,5 @@
+{
+  "canonical_report": "data/manifests/leakage_audit.json",
+  "sha256": "51c72ae116987d0b1777d0ae4c59a549dca03433306ef6dc1c9dd3c84d7f3d44",
+  "passed": true
+}

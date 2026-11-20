@@ -1,0 +1,17 @@
+{
+  "train": [
+    "data/training/production_training.csv"
+  ],
+  "tests": {
+    "data/realworld/archive/openphish_20261005_unseen.csv": {
+      "exact_overlap_count": 0,
+      "domain_overlap_count": 0,
+      "exact_overlap_sample": [],
+      "domain_overlap_sample": []
+    }
+  },
+  "exact_overlap_total": 0,
+  "domain_overlap_total": 0,
+  "passed": true,
+  "failed_tests": []
+}

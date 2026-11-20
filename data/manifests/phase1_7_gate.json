@@ -1,0 +1,44 @@
+{
+  "phase": "1-7",
+  "checks": [
+    {
+      "command": "/opt/pyvenv/bin/python -m compileall -q app scripts",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "/opt/pyvenv/bin/python -m pytest -q",
+      "returncode": 0,
+      "stdout": ".................................................                        [100%]\n49 passed in 4.37s\n",
+      "stderr": ""
+    },
+    {
+      "command": "/opt/pyvenv/bin/python scripts/production_doctor.py",
+      "returncode": 0,
+      "stdout": "{\n  \"checks\": {\n    \"model_load_fail_closed\": true,\n    \"integrity_verification\": true,\n    \"http_validation\": true,\n    \"production_doctor_pass\": true\n  },\n  \"issues\": []\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": "/opt/pyvenv/bin/python scripts/temporal_gate.py data/training/production_training.csv",
+      "returncode": 2,
+      "stdout": "{\n  \"dataset\": \"data/training/production_training.csv\",\n  \"checked_at\": \"2026-10-12T09:54:04.194230+00:00\",\n  \"timestamp_column\": null,\n  \"rows\": 1308,\n  \"status\": \"not_ready\",\n  \"message\": \"Temporal gate is not ready: no sufficiently complete timestamp column with >1 distinct observation time.\"\n}\n",
+      "stderr": "",
+      "required_for_phase_gate": false
+    },
+    {
+      "command": "/opt/pyvenv/bin/python scripts/audit_dataset_leakage.py --train data/training/production_training.csv --test data/realworld/archive/openphish_20261005_unseen.csv",
+      "returncode": 0,
+      "stdout": "{\n  \"train\": [\n    \"data/training/production_training.csv\"\n  ],\n  \"tests\": {\n    \"data/realworld/archive/openphish_20261005_unseen.csv\": {\n      \"exact_overlap_count\": 0,\n      \"domain_overlap_count\": 0,\n      \"exact_overlap_sample\": [],\n      \"domain_overlap_sample\": []\n    }\n  },\n  \"exact_overlap_total\": 0,\n  \"domain_overlap_total\": 0,\n  \"passed\": true,\n  \"failed_tests\": []\n}\n",
+      "stderr": ""
+    }
+  ],
+  "passed": true,
+  "temporal_status": {
+    "command": "/opt/pyvenv/bin/python scripts/temporal_gate.py data/training/production_training.csv",
+    "returncode": 2,
+    "stdout": "{\n  \"dataset\": \"data/training/production_training.csv\",\n  \"checked_at\": \"2026-10-12T09:54:04.194230+00:00\",\n  \"timestamp_column\": null,\n  \"rows\": 1308,\n  \"status\": \"not_ready\",\n  \"message\": \"Temporal gate is not ready: no sufficiently complete timestamp column with >1 distinct observation time.\"\n}\n",
+    "stderr": "",
+    "required_for_phase_gate": false
+  }
+}

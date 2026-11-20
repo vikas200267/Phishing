@@ -1,0 +1,147 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: phishguard-api
+  namespace: phishguard
+spec:
+  replicas: 4
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: phishguard-api
+  template:
+    metadata:
+      labels:
+        app: phishguard-api
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: phishguard:realtime
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: AUTH_REQUIRED
+              value: "true"
+            - name: ML_BLOCKING_ENABLED
+              value: "false"
+            - name: PHISHGUARD_FEED_DIR
+              value: /app/live_feeds
+            - name: CACHE_ENABLED
+              value: "true"
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: phishguard-runtime
+                  key: redis-url
+            - name: PHISHGUARD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: phishguard-runtime
+                  key: api-key
+            - name: PHISHGUARD_ADMIN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: phishguard-runtime
+                  key: admin-key
+            - name: CASCADE_ENABLED
+              value: "true"
+            - name: CASCADE_LOW_THRESHOLD
+              value: "0.10"
+            - name: CASCADE_HIGH_THRESHOLD
+              value: "0.90"
+            - name: INFERENCE_THREADS
+              value: "1"
+            - name: INFERENCE_EXECUTOR_WORKERS
+              value: "2"
+            - name: OMP_NUM_THREADS
+              value: "1"
+            - name: OPENBLAS_NUM_THREADS
+              value: "1"
+            - name: MKL_NUM_THREADS
+              value: "1"
+            - name: LOCAL_INTEL_ENABLED
+              value: "true"
+            - name: ENRICHMENT_ENABLED
+              value: "false"
+            - name: METRICS_PUBLIC
+              value: "false"
+          volumeMounts:
+            - name: live-feeds
+              mountPath: /app/live_feeds
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+        - name: feed-refresher
+          image: phishguard:realtime
+          imagePullPolicy: IfNotPresent
+          command: ["python", "scripts/refresh_feeds.py"]
+          env:
+            - name: PHISHGUARD_FEED_DIR
+              value: /app/live_feeds
+            - name: OPENPHISH_REFRESH_SECONDS
+              value: "43200"
+            - name: FEED_RETRY_SECONDS
+              value: "900"
+            - name: URLHAUS_REFRESH_SECONDS
+              value: "300"
+          volumeMounts:
+            - name: live-feeds
+              mountPath: /app/live_feeds
+            - name: temp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "96Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          startupProbe:
+            exec:
+              command: ["python", "-c", "from pathlib import Path; import sys; sys.exit(0 if Path('/app/live_feeds/refresh_status.json').exists() else 1)"]
+            periodSeconds: 10
+            failureThreshold: 30
+      volumes:
+        - name: live-feeds
+          emptyDir: {}
+        - name: temp
+          emptyDir: {}
+      imagePullSecrets: []

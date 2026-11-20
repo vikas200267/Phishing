@@ -1,0 +1,11 @@
+.git
+.github
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+*.log
+data/feedback.sqlite3
+data/verified_feedback.csv
+data/live_*.csv
+artifacts/loadtest_*

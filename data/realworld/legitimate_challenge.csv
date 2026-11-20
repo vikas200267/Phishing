@@ -1,0 +1,22 @@
+url,label,source,observed_at,verification_status
+https://www.google.com/,0,user reported legitimate homepage,2026-11-18T06:56:44.416211+00:00,verified_http_html
+https://www.wikipedia.org/,0,user reported legitimate homepage,2026-11-18T06:56:44.416211+00:00,observation_attempt_failed
+https://github.com/,0,user reported legitimate homepage,2026-11-18T06:56:44.416211+00:00,verified_http_html
+https://www.microsoft.com/,0,user reported legitimate homepage,2026-11-18T06:56:44.416211+00:00,verified_http_html
+https://www.python.org/,0,user reported legitimate homepage,2026-11-18T06:56:44.430620+00:00,verified_http_html
+https://www.nasa.gov/,0,user reported legitimate homepage,2026-11-18T06:56:44.432130+00:00,observation_attempt_failed
+https://www.apple.com/,0,official Apple homepage,2026-11-18T06:56:44.436556+00:00,verified_http_html
+https://www.adobe.com/,0,official Adobe homepage,2026-11-18T06:56:44.605180+00:00,verified_http_html
+https://www.mozilla.org/,0,official Mozilla homepage,2026-11-18T06:56:44.731632+00:00,verified_http_html
+https://www.cloudflare.com/,0,official Cloudflare homepage,2026-11-18T06:56:44.783929+00:00,verified_http_html
+https://www.mit.edu/,0,official MIT homepage,2026-11-18T06:56:46.284909+00:00,verified_http_html
+https://www.stanford.edu/,0,official Stanford homepage,2026-11-18T06:56:46.293031+00:00,observation_attempt_failed
+https://www.harvard.edu/,0,official Harvard homepage,2026-11-18T06:56:46.293031+00:00,observation_attempt_failed
+https://www.debian.org/,0,official Debian homepage,2026-11-18T06:56:46.295436+00:00,verified_http_html
+https://ubuntu.com/,0,official Ubuntu homepage,2026-11-18T06:56:46.331821+00:00,verified_http_html
+https://www.who.int/,0,official WHO homepage,2026-11-18T06:56:46.349757+00:00,verified_http_html
+https://www.un.org/,0,official United Nations homepage,2026-11-18T06:56:46.356796+00:00,verified_http_html
+https://european-union.europa.eu/,0,official European Union homepage,2026-11-18T06:56:46.447957+00:00,verified_http_html
+https://www.ietf.org/,0,official IETF homepage,2026-11-18T06:56:46.449622+00:00,observation_attempt_failed
+https://www.kernel.org/,0,official Linux Kernel Archives homepage,2026-11-18T06:56:46.523269+00:00,verified_http_html
+https://www.nist.gov/,0,official NIST homepage,2026-11-18T06:56:46.557140+00:00,observation_attempt_failed

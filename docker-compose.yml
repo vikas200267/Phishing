@@ -1,0 +1,87 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "no", "--maxmemory-policy", "allkeys-lru"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
+  feed-refresher:
+    build: .
+    command: ["python", "scripts/refresh_feeds.py"]
+    environment:
+      PHISHGUARD_FEED_DIR: /app/live_feeds
+      OPENPHISH_FEED_URL: ${OPENPHISH_FEED_URL:-https://www.openphish.com/feed.txt}
+      OPENPHISH_MIRROR_URL: ${OPENPHISH_MIRROR_URL:-https://raw.githubusercontent.com/openphish/public_feed/refs/heads/main/feed.txt}
+      OPENPHISH_REFRESH_SECONDS: ${OPENPHISH_REFRESH_SECONDS:-43200}
+      FEED_RETRY_SECONDS: ${FEED_RETRY_SECONDS:-900}
+      URLHAUS_AUTH_KEY: ${URLHAUS_AUTH_KEY:-}
+      URLHAUS_REFRESH_SECONDS: ${URLHAUS_REFRESH_SECONDS:-300}
+    volumes:
+      - phishguard-feeds:/app/live_feeds
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: ["ALL"]
+    restart: unless-stopped
+
+  api:
+    build: .
+    ports:
+      - '8000:8000'
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      PHISHGUARD_FEED_DIR: /app/live_feeds
+      FEEDBACK_DB_PATH: /app/runtime/feedback.sqlite3
+      AUTH_REQUIRED: 'true'
+      ML_BLOCKING_ENABLED: ${ML_BLOCKING_ENABLED:-false}
+      PHISHGUARD_API_KEY: ${PHISHGUARD_API_KEY}
+      PHISHGUARD_ADMIN_KEY: ${PHISHGUARD_ADMIN_KEY}
+      MAX_BATCH_SIZE: 10000
+      INFERENCE_CHUNK_SIZE: 2048
+      CACHE_TTL_SECONDS: 300
+      CACHE_CONFIDENT_TTL_SECONDS: ${CACHE_CONFIDENT_TTL_SECONDS:-900}
+      CACHE_UNCERTAIN_TTL_SECONDS: ${CACHE_UNCERTAIN_TTL_SECONDS:-60}
+      DEEP_ANALYSIS_ON_UNCERTAIN: ${DEEP_ANALYSIS_ON_UNCERTAIN:-false}
+      DEEP_ANALYSIS_TIMEOUT_SECONDS: ${DEEP_ANALYSIS_TIMEOUT_SECONDS:-2.0}
+      DEEP_ANALYSIS_MAX_CONCURRENCY: ${DEEP_ANALYSIS_MAX_CONCURRENCY:-32}
+      CACHE_ENABLED: 'true'
+      CASCADE_ENABLED: 'true'
+      CASCADE_LOW_THRESHOLD: '0.10'
+      CASCADE_HIGH_THRESHOLD: '0.90'
+      SHADOW_SAMPLE_RATE: '0'
+      INFERENCE_EXECUTOR_WORKERS: '2'
+      LOCAL_INTEL_ENABLED: 'true'
+      INFERENCE_THREADS: '1'
+      MAX_REQUEST_BODY_BYTES: 2000000
+      MAX_BATCH_CHARS: 1000000
+      MAX_EMAIL_BODY_CHARS: 200000
+      CACHE_MAXSIZE: 100000
+      LOCAL_INTEL_RELOAD_SECONDS: 15
+      ENRICHMENT_ENABLED: 'false'
+      REMOTE_ENRICHMENT_ADMIN_ONLY: 'true'
+      METRICS_PUBLIC: 'false'
+    volumes:
+      - phishguard-feeds:/app/live_feeds:ro
+      - phishguard-runtime:/app/runtime:rw
+    depends_on:
+      redis:
+        condition: service_healthy
+      feed-refresher:
+        condition: service_started
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: ["ALL"]
+    restart: unless-stopped
+
+volumes:
+  phishguard-feeds:
+  phishguard-runtime:

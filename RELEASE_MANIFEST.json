@@ -1,0 +1,92 @@
+{
+  "release": "PhishGuard Phases 1\u201317 Real-World Release",
+  "created_at_utc": "2026-10-12T10:10:36.290077+00:00",
+  "current_model": "v20261001_104517",
+  "model_sha256": "187403348b4aee338f6dec6f4c4c77e38c41266235789068a90a3295bb415cba",
+  "model_feature_count": 104,
+  "model_components": 7,
+  "model_fast_path_enabled": false,
+  "training_sources": [
+    {
+      "path": "data/source/extracted_phishing_dataset.csv",
+      "sha256": "a3469827b08568e650ca8fa75aa53855d37d72be08a80a30bca3d8b2b840d4d5"
+    },
+    {
+      "path": "data/source/extracted_legitmate_dataset.csv",
+      "sha256": "ec632025565d964b210e1b8e70d029f6faaad7a0ea33b80a22611110cec02dec"
+    }
+  ],
+  "manual_benign_seed_in_training": false,
+  "synthetic_training_fallback": false,
+  "source_provenance_manifest": "data/manifests/dataset_manifest.json",
+  "unseen_domain_outer_holdout": {
+    "split": "unseen_domain",
+    "samples": 1227,
+    "train_samples": 1020,
+    "test_samples": 207,
+    "test_domains": 95,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "note": "Dataset-specific holdout only (207 test rows); not an Internet-wide performance claim."
+  },
+  "immutable_frozen_regression": {
+    "path": "data/frozen_regression.csv",
+    "rows": 213,
+    "sha256": "fbe3025b8b495ff99529cc3a50dad6ac6f485e9fc35d6db3ac0d78c62b4a4ff2",
+    "accuracy": 0.9859154929577465,
+    "precision": 0.9904761904761905,
+    "recall": 0.9811320754716981,
+    "f1": 0.985781990521327
+  },
+  "historical_positive_feed_replay": {
+    "capture_path": "data/realworld/archive/openphish_20261005_unseen.csv",
+    "captured_date": "2026-10-05",
+    "source_url": "https://raw.githubusercontent.com/openphish/public_feed/refs/heads/main/feed.txt",
+    "rows": 51,
+    "detected": 51,
+    "positive_feed_recall": 1.0,
+    "training_exact_overlap": 0,
+    "training_domain_overlap": 0,
+    "listed_urls_visited": false,
+    "note": "Historical positive-only evaluation. Does not estimate precision or current feed coverage."
+  },
+  "local_http_benchmark": "artifacts/benchmarks/phase8_17_local_http_replay_2026-10-12.json",
+  "benchmark_result": {
+    "single_url_rps": 73.52,
+    "single_url_p95_ms": 412.23,
+    "single_url_p99_ms": 499.96,
+    "batch_size": 64,
+    "batch_decisions_per_second": 667.02,
+    "batch_p95_ms": 2065.64,
+    "batch_p99_ms": 2074.33,
+    "environment": "isolated sandbox; configuration-specific",
+    "production_capacity_verified": false
+  },
+  "scale_target_rps": {
+    "10m_in_15s": 666666.6666666666,
+    "10m_in_10s": 1000000,
+    "measured_1m_rps": false
+  },
+  "phase_gate": "data/manifests/phase8_17_gate.json",
+  "phase_gate_result": "PASS for executable/code/model/leakage gates; external evidence gates below remain explicit",
+  "temporal_status": "NOT_READY: no sufficiently complete authentic per-row timestamp coverage",
+  "live_feed_status": "NOT_VERIFIED_IN_THIS_RUNTIME: October 5 feed capture is historical; refresh requires an Internet-enabled environment",
+  "dependency_cve_status": "UNVERIFIED until pip-audit/OSV/container scanners execute in Internet-enabled CI",
+  "cloud_scale_status": "NOT_TESTED: a distributed target-cloud run is required",
+  "test_suite": "59 tests passed on 2026-10-12; see data/manifests/phase8_17_gate.json",
+  "synthetic_urls_in_production_or_benchmark_corpus": false,
+  "listed_malicious_urls_visited": false,
+  "release_evidence": {
+    "phase_gate_file": "data/manifests/phase8_17_gate.json",
+    "phase_gate_sha256": "b7e0bdfee91b7406f1b25e52b59ac47b8501141e79c3ff929a197b87eb6f488b",
+    "dataset_manifest_file": "data/manifests/dataset_manifest.json",
+    "dataset_manifest_sha256": "c3e6ce63b171cce60f8b8a420e9689e420fcab58cad3220e8967445477d8ace2",
+    "http_benchmark_file": "artifacts/benchmarks/phase8_17_local_http_replay_2026-10-12.json",
+    "http_benchmark_sha256": "12dd0e32ed3fdd5967156c08592b8c724bb946688266b711823c7d1bacf699f9",
+    "model_manifest_sha256": "aa5a475676b7c08736eff4f0ae3ec83bef75f32e0fd51a509d35408267f78a84",
+    "active_fast_path_enabled": false,
+    "release_gate_required_checks_passed": true
+  }
+}

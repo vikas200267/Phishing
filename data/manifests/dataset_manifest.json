@@ -1,0 +1,199 @@
+{
+  "generated_at": "2026-10-12T10:05:25.734560+00:00",
+  "items": [
+    {
+      "path": "data/source/extracted_phishing_dataset.csv",
+      "sha256": "a3469827b08568e650ca8fa75aa53855d37d72be08a80a30bca3d8b2b840d4d5",
+      "bytes": 101419,
+      "format": "csv",
+      "rows": 1000,
+      "valid_url_rows": 1000,
+      "unique_normalized_urls": 991,
+      "label_counts": {
+        "1": 1000
+      }
+    },
+    {
+      "path": "data/source/extracted_legitmate_dataset.csv",
+      "sha256": "ec632025565d964b210e1b8e70d029f6faaad7a0ea33b80a22611110cec02dec",
+      "bytes": 147125,
+      "format": "csv",
+      "rows": 1000,
+      "valid_url_rows": 1000,
+      "unique_normalized_urls": 992,
+      "label_counts": {
+        "0": 1000
+      }
+    },
+    {
+      "path": "data/training/production_training.csv",
+      "sha256": "48326e6556950e4830344e307a08be3664367e2979ec4c7a916d14c89211e0a4",
+      "bytes": 167309,
+      "format": "csv",
+      "rows": 1308,
+      "valid_url_rows": 1308,
+      "unique_normalized_urls": 1308,
+      "label_counts": {
+        "0": 727,
+        "1": 581
+      },
+      "source_counts": {
+        "extracted_legitmate_dataset.csv": 727,
+        "extracted_phishing_dataset.csv": 500,
+        "openphish": 81
+      },
+      "timestamp_column": "observed_at",
+      "timestamp_valid_rows": 81,
+      "timestamp_distinct_values": 1,
+      "timestamp_min": "2026-10-01T06:04:00+00:00",
+      "timestamp_max": "2026-10-01T06:04:00+00:00"
+    },
+    {
+      "path": "data/training/phishing_realworld.csv",
+      "sha256": "7e94a119aa94852e381506f26e043c2ccb5deb18ef03e5bd57809807879582ce",
+      "bytes": 57818,
+      "format": "csv",
+      "rows": 581,
+      "valid_url_rows": 581,
+      "unique_normalized_urls": 581,
+      "label_counts": {
+        "1": 581
+      },
+      "source_counts": {
+        "extracted_phishing_dataset.csv": 500,
+        "openphish": 81
+      },
+      "timestamp_column": "observed_at",
+      "timestamp_valid_rows": 81,
+      "timestamp_distinct_values": 1,
+      "timestamp_min": "2026-10-01T06:04:00+00:00",
+      "timestamp_max": "2026-10-01T06:04:00+00:00"
+    },
+    {
+      "path": "data/training/legitimate_realworld.csv",
+      "sha256": "657054ab508a86729f58a43773dd9d99b476828d7fd4e1d77adace3ada215b62",
+      "bytes": 109520,
+      "format": "csv",
+      "rows": 727,
+      "valid_url_rows": 727,
+      "unique_normalized_urls": 727,
+      "label_counts": {
+        "0": 727
+      },
+      "source_counts": {
+        "extracted_legitmate_dataset.csv": 727
+      },
+      "timestamp_column": "observed_at",
+      "timestamp_valid_rows": 0,
+      "timestamp_distinct_values": 0,
+      "timestamp_min": null,
+      "timestamp_max": null
+    },
+    {
+      "path": "data/history/openphish_20261001_snapshot.csv",
+      "sha256": "64502ceaa397b695e55aa11684cf8be28fda634e952b31c97d53eb381e46bed2",
+      "bytes": 9238,
+      "format": "csv",
+      "rows": 100,
+      "valid_url_rows": 100,
+      "unique_normalized_urls": 100,
+      "label_counts": {
+        "1": 100
+      },
+      "source_counts": {
+        "openphish": 100
+      },
+      "timestamp_column": "collected_at",
+      "timestamp_valid_rows": 100,
+      "timestamp_distinct_values": 1,
+      "timestamp_min": "2026-10-01T06:04:00+00:00",
+      "timestamp_max": "2026-10-01T06:04:00+00:00"
+    },
+    {
+      "path": "data/history/openphish_20261001/live_openphish_clean48_candidate.csv",
+      "sha256": "b6920375f167f7299796cca987a31f9de598a8f5c088f47cae57101dfaf3b831",
+      "bytes": 4310,
+      "format": "csv",
+      "rows": 48,
+      "valid_url_rows": 48,
+      "unique_normalized_urls": 48,
+      "label_counts": {
+        "1": 48
+      },
+      "source_counts": {
+        "OpenPhish": 48
+      },
+      "timestamp_column": "observed_at",
+      "timestamp_valid_rows": 48,
+      "timestamp_distinct_values": 1,
+      "timestamp_min": "2026-10-01T07:59:00+00:00",
+      "timestamp_max": "2026-10-01T07:59:00+00:00"
+    },
+    {
+      "path": "data/realworld/archive/openphish_20261005_unseen.csv",
+      "sha256": "9fcabaf27c44809bc6915bb7939a302e8635731623ed00a367419745f2c81deb",
+      "bytes": 4986,
+      "format": "csv",
+      "rows": 51,
+      "valid_url_rows": 51,
+      "unique_normalized_urls": 51,
+      "label_counts": {
+        "1": 51
+      },
+      "source_counts": {
+        "OpenPhish": 51
+      },
+      "timestamp_column": "observed_at",
+      "timestamp_valid_rows": 51,
+      "timestamp_distinct_values": 1,
+      "timestamp_min": "2026-10-05T00:00:00+00:00",
+      "timestamp_max": "2026-10-05T00:00:00+00:00"
+    },
+    {
+      "path": "data/frozen_regression.csv",
+      "sha256": "fbe3025b8b495ff99529cc3a50dad6ac6f485e9fc35d6db3ac0d78c62b4a4ff2",
+      "bytes": 44458,
+      "format": "csv",
+      "rows": 213,
+      "valid_url_rows": 213,
+      "unique_normalized_urls": 211,
+      "label_counts": {
+        "0": 107,
+        "1": 106
+      }
+    },
+    {
+      "path": "data/release_gate_v1.csv",
+      "sha256": "5daaadd87858c632d87bd3e3fae5d97d1d9526d87164cf908eadf83cc1cd144e",
+      "bytes": 91044,
+      "format": "csv",
+      "rows": 365,
+      "valid_url_rows": 365,
+      "unique_normalized_urls": 363,
+      "label_counts": {
+        "0": 188,
+        "1": 177
+      }
+    },
+    {
+      "path": "data/realworld_load_corpus.json",
+      "sha256": "35d892b12624d55a9f0fe4a8f1fcec0be9e36dc654ea80046400b185faff9fea",
+      "bytes": 244648,
+      "format": "json_url_corpus",
+      "rows": 2031,
+      "valid_url_rows": 2031,
+      "unique_normalized_urls": 2031,
+      "capture_generated_at": "2026-10-01T10:45:17Z",
+      "source_role": "real_world_url_replay_corpus",
+      "listed_urls_visited": false,
+      "declared_source_counts": {
+        "base_phishing": 1000,
+        "base_legitimate": 1000,
+        "openphish_capture": 48
+      },
+      "embedded_url_hash_sha256": "228ab4e851b8891f22d6c73f194a06d5506ba39a7f9e50dc3588269992c0c90a"
+    }
+  ],
+  "synthetic_data_declared": false,
+  "note": "Hashes and counts describe captured files; provenance and label semantics must be reviewed separately."
+}

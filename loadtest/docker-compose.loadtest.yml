@@ -1,0 +1,45 @@
+services:
+  api:
+    build: ..
+    environment:
+      AUTH_REQUIRED: 'true'
+      PHISHGUARD_API_KEY: ${PHISHGUARD_API_KEY:?set PHISHGUARD_API_KEY}
+      PHISHGUARD_ADMIN_KEY: ${PHISHGUARD_ADMIN_KEY:?set PHISHGUARD_ADMIN_KEY}
+      ENRICHMENT_ENABLED: 'false'
+      LOCAL_INTEL_ENABLED: 'false'
+      CACHE_ENABLED: 'false'
+      CASCADE_ENABLED: 'false'
+      MAX_BATCH_SIZE: '1000'
+      INFERENCE_CHUNK_SIZE: '2048'
+      WEB_CONCURRENCY: '1'
+      INFERENCE_THREADS: '1'
+      INFERENCE_EXECUTOR_WORKERS: ${INFERENCE_EXECUTOR_WORKERS:-2}
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    expose: ['8000']
+
+  lb:
+    image: nginx:1.29-alpine
+    ports: ['8000:8000']
+    volumes:
+      - ./nginx.loadtest.conf:/etc/nginx/nginx.conf:ro
+    depends_on: [api]
+
+  loadgen:
+    image: grafana/k6:latest
+    environment:
+      BASE_URL: http://lb:8000
+      PHISHGUARD_API_KEY: ${PHISHGUARD_API_KEY:?set PHISHGUARD_API_KEY}
+      TARGET_RPS: ${TARGET_RPS:-1000}
+      DURATION: ${DURATION:-60s}
+      PREALLOCATED_VUS: ${PREALLOCATED_VUS:-1000}
+      MAX_VUS: ${MAX_VUS:-10000}
+      MODE: ${MODE:-inference}
+      BATCH_SIZE: ${BATCH_SIZE:-1}
+      CORPUS_PATH: /data/live_load_corpus.json
+    volumes:
+      - ./k6_api.js:/scripts/k6_api.js:ro
+      - ../data:/data:ro
+    command: ['run','/scripts/k6_api.js']
+    depends_on: [lb]

@@ -1,0 +1,255 @@
+{
+  "generated_at": "2026-11-17T18:13:49.780248+00:00",
+  "dataset": "data/realworld/legitimate_challenge.csv",
+  "sha256": "9cf20bab77aa775b1219a5bb51142b04832f4856ad732400d3b0f3fd848d9fb9",
+  "rows": 21,
+  "label_source": "Six URLs from user-supplied controlled-test summary; additional URLs are official organization/institution domains cross-checked against their organization homepage using the web search provider on the generation date.",
+  "verification_date": "2026-11-18",
+  "verification_method": "Direct HTTPS GET of homepage root only; same-registrable-domain HTTPS redirects only; first 4096 bytes read; no links followed. observed_at records the authentic attempt time; verification_status distinguishes verified page responses from failed TLS/network attempts.",
+  "source_urls": [
+    "https://www.google.com/",
+    "https://www.wikipedia.org/",
+    "https://github.com/",
+    "https://www.microsoft.com/",
+    "https://www.python.org/",
+    "https://www.nasa.gov/",
+    "https://www.apple.com/",
+    "https://www.adobe.com/",
+    "https://www.mozilla.org/",
+    "https://www.cloudflare.com/",
+    "https://www.mit.edu/",
+    "https://www.stanford.edu/",
+    "https://www.harvard.edu/",
+    "https://www.debian.org/",
+    "https://ubuntu.com/",
+    "https://www.who.int/",
+    "https://www.un.org/",
+    "https://european-union.europa.eu/",
+    "https://www.ietf.org/",
+    "https://www.kernel.org/",
+    "https://www.nist.gov/"
+  ],
+  "source_pages": [
+    "https://www.apple.com/",
+    "https://www.adobe.com/",
+    "https://www.mozilla.org/",
+    "https://www.cloudflare.com/",
+    "https://www.mit.edu/",
+    "https://www.stanford.edu/",
+    "https://www.harvard.edu/",
+    "https://www.debian.org/",
+    "https://ubuntu.com/",
+    "https://www.who.int/",
+    "https://www.un.org/",
+    "https://european-union.europa.eu/",
+    "https://www.ietf.org/",
+    "https://www.kernel.org/",
+    "https://www.nist.gov/"
+  ],
+  "observation_time_known": true,
+  "listed_urls_visited": true,
+  "limitations": [
+    "The original report named six of its 15 sites; the other nine URLs were not supplied.",
+    "This expanded independently curated challenge does not claim to recreate the original 15-site test.",
+    "Per-URL timestamps are intentionally blank because direct page fetch was blocked in this environment."
+  ],
+  "observed_at_coverage": 1.0,
+  "observations": {
+    "https://www.nasa.gov/": {
+      "url": "https://www.nasa.gov/",
+      "observed_at": "2026-11-18T06:56:44.432130+00:00",
+      "status": null,
+      "final_url": null,
+      "content_type": null,
+      "verified": false,
+      "error_type": "URLError",
+      "error_detail": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1010)>"
+    },
+    "https://www.wikipedia.org/": {
+      "url": "https://www.wikipedia.org/",
+      "observed_at": "2026-11-18T06:56:44.416211+00:00",
+      "status": null,
+      "final_url": null,
+      "content_type": null,
+      "verified": false,
+      "error_type": "URLError",
+      "error_detail": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1010)>"
+    },
+    "https://www.apple.com/": {
+      "url": "https://www.apple.com/",
+      "observed_at": "2026-11-18T06:56:44.436556+00:00",
+      "status": 200,
+      "final_url": "https://www.apple.com/",
+      "content_type": "text/html; charset=utf-8",
+      "verified": true,
+      "error_type": null
+    },
+    "https://www.adobe.com/": {
+      "url": "https://www.adobe.com/",
+      "observed_at": "2026-11-18T06:56:44.605180+00:00",
+      "status": 206,
+      "final_url": "https://www.adobe.com/",
+      "content_type": "text/html; charset=utf-8",
+      "verified": true,
+      "error_type": null
+    },
+    "https://www.google.com/": {
+      "url": "https://www.google.com/",
+      "observed_at": "2026-11-18T06:56:44.416211+00:00",
+      "status": 200,
+      "final_url": "https://www.google.com/",
+      "content_type": "text/html; charset=ISO-8859-1",
+      "verified": true,
+      "error_type": null
+    },
+    "https://www.python.org/": {
+      "url": "https://www.python.org/",
+      "observed_at": "2026-11-18T06:56:44.430620+00:00",
+      "status": 206,
+      "final_url": "https://www.python.org/",
+      "content_type": "text/html; charset=utf-8",
+      "verified": true,
+      "error_type": null
+    },
+    "https://github.com/": {
+      "url": "https://github.com/",
+      "observed_at": "2026-11-18T06:56:44.416211+00:00",
+      "status": 206,
+      "final_url": "https://github.com/",
+      "content_type": "text/html; charset=utf-8",
+      "verified": true,
+      "error_type": null
+    },
+    "https://www.mozilla.org/": {
+      "url": "https://www.mozilla.org/",
+      "observed_at": "2026-11-18T06:56:44.731632+00:00",
+      "status": 206,
+      "final_url": "https://www.mozilla.org/",
+      "content_type": "text/html; charset=utf-8",
+      "verified": true,
+      "error_type": null
+    },
+    "https://www.cloudflare.com/": {
+      "url": "https://www.cloudflare.com/",
+      "observed_at": "2026-11-18T06:56:44.783929+00:00",
+      "status": 200,
+      "final_url": "https://www.cloudflare.com/",
+      "content_type": "text/html; charset=utf-8",
+      "verified": true,
+      "error_type": null
+    },
+    "https://www.harvard.edu/": {
+      "url": "https://www.harvard.edu/",
+      "observed_at": "2026-11-18T06:56:46.293031+00:00",
+      "status": null,
+      "final_url": null,
+      "content_type": null,
+      "verified": false,
+      "error_type": "URLError",
+      "error_detail": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1010)>"
+    },
+    "https://www.stanford.edu/": {
+      "url": "https://www.stanford.edu/",
+      "observed_at": "2026-11-18T06:56:46.293031+00:00",
+      "status": null,
+      "final_url": null,
+      "content_type": null,
+      "verified": false,
+      "error_type": "URLError",
+      "error_detail": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1010)>"
+    },
+    "https://www.mit.edu/": {
+      "url": "https://www.mit.edu/",
+      "observed_at": "2026-11-18T06:56:46.284909+00:00",
+      "status": 200,
+      "final_url": "https://www.mit.edu/",
+      "content_type": "text/html",
+      "verified": true,
+      "error_type": null
+    },
+    "https://www.ietf.org/": {
+      "url": "https://www.ietf.org/",
+      "observed_at": "2026-11-18T06:56:46.449622+00:00",
+      "status": null,
+      "final_url": null,
+      "content_type": null,
+      "verified": false,
+      "error_type": "URLError",
+      "error_detail": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1010)>"
+    },
+    "https://www.who.int/": {
+      "url": "https://www.who.int/",
+      "observed_at": "2026-11-18T06:56:46.349757+00:00",
+      "status": 200,
+      "final_url": "https://www.who.int/",
+      "content_type": "text/html; charset=utf-8",
+      "verified": true,
+      "error_type": null
+    },
+    "https://www.microsoft.com/": {
+      "url": "https://www.microsoft.com/",
+      "observed_at": "2026-11-18T06:56:44.416211+00:00",
+      "status": 200,
+      "final_url": "https://www.microsoft.com/en-in",
+      "content_type": "text/html; charset=utf-8",
+      "verified": true,
+      "error_type": null
+    },
+    "https://www.kernel.org/": {
+      "url": "https://www.kernel.org/",
+      "observed_at": "2026-11-18T06:56:46.523269+00:00",
+      "status": 206,
+      "final_url": "https://www.kernel.org/",
+      "content_type": "text/html; charset=utf-8",
+      "verified": true,
+      "error_type": null
+    },
+    "https://www.un.org/": {
+      "url": "https://www.un.org/",
+      "observed_at": "2026-11-18T06:56:46.356796+00:00",
+      "status": 200,
+      "final_url": "https://www.un.org/",
+      "content_type": "text/html; charset=UTF-8",
+      "verified": true,
+      "error_type": null
+    },
+    "https://ubuntu.com/": {
+      "url": "https://ubuntu.com/",
+      "observed_at": "2026-11-18T06:56:46.331821+00:00",
+      "status": 206,
+      "final_url": "https://ubuntu.com/",
+      "content_type": "text/html; charset=utf-8",
+      "verified": true,
+      "error_type": null
+    },
+    "https://www.nist.gov/": {
+      "url": "https://www.nist.gov/",
+      "observed_at": "2026-11-18T06:56:46.557140+00:00",
+      "status": null,
+      "final_url": null,
+      "content_type": null,
+      "verified": false,
+      "error_type": "URLError",
+      "error_detail": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1010)>"
+    },
+    "https://www.debian.org/": {
+      "url": "https://www.debian.org/",
+      "observed_at": "2026-11-18T06:56:46.295436+00:00",
+      "status": 206,
+      "final_url": "https://www.debian.org/",
+      "content_type": "text/html",
+      "verified": true,
+      "error_type": null
+    },
+    "https://european-union.europa.eu/": {
+      "url": "https://european-union.europa.eu/",
+      "observed_at": "2026-11-18T06:56:46.447957+00:00",
+      "status": 206,
+      "final_url": "https://european-union.europa.eu/select-language?destination=/node/1",
+      "content_type": "text/html; charset=utf-8",
+      "verified": true,
+      "error_type": null
+    }
+  },
+  "successful_html_observations": 15
+}

@@ -1,0 +1,241 @@
+{
+  "generated_at": "2026-11-18T10:11:19.486563+00:00",
+  "phase_range": "8-17",
+  "release_model_version": "v20261001_104517",
+  "required_checks_passed": true,
+  "checks": [
+    {
+      "command": "/opt/pyvenv/bin/python -m compileall -q app scripts tests",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "/opt/pyvenv/bin/python -m pytest -q --disable-warnings",
+      "returncode": 0,
+      "stdout": "...........................................................              [100%]\n59 passed in 4.70s\n",
+      "stderr": ""
+    },
+    {
+      "command": "/opt/pyvenv/bin/python scripts/production_doctor.py",
+      "returncode": 0,
+      "stdout": "{\n  \"checks\": {\n    \"model_load_fail_closed\": true,\n    \"integrity_verification\": true,\n    \"http_validation\": true,\n    \"production_doctor_pass\": true\n  },\n  \"issues\": []\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": "/opt/pyvenv/bin/python scripts/audit_dataset_leakage.py --train data/training/production_training.csv --test data/realworld/archive/openphish_20261005_unseen.csv --out data/manifests/phase8_17_leakage_audit.json",
+      "returncode": 0,
+      "stdout": "{\n  \"train\": [\n    \"data/training/production_training.csv\"\n  ],\n  \"tests\": {\n    \"data/realworld/archive/openphish_20261005_unseen.csv\": {\n      \"exact_overlap_count\": 0,\n      \"domain_overlap_count\": 0,\n      \"exact_overlap_sample\": [],\n      \"domain_overlap_sample\": []\n    }\n  },\n  \"exact_overlap_total\": 0,\n  \"domain_overlap_total\": 0,\n  \"passed\": true,\n  \"failed_tests\": []\n}\n",
+      "stderr": ""
+    }
+  ],
+  "model_checks": {
+    "current_model_set": true,
+    "model_integrity": true,
+    "seven_component_model": true,
+    "feature_schema_matches_live_extractor": true,
+    "probabilities_are_bounded": true,
+    "unicode_features_present": true,
+    "unsafe_fast_path_not_enabled": true
+  },
+  "model": {
+    "version": "v20261001_104517",
+    "sha256": "187403348b4aee338f6dec6f4c4c77e38c41266235789068a90a3295bb415cba",
+    "feature_count": 104,
+    "raw_component_count": 7,
+    "raw_component_shape": [
+      2,
+      7
+    ],
+    "feature_extractor_count": 104,
+    "feature_names_match_extractor": true,
+    "probabilities_in_unit_interval": true,
+    "unicode_feature_detected": true,
+    "unicode_diagnostic_present": true,
+    "fast_path_enabled": false,
+    "fast_path_disabled_safely_if_no_calibrator": true,
+    "threshold": 0.2634677821600013,
+    "suspicious_threshold": null
+  },
+  "leakage_audit": {
+    "train": [
+      "data/training/production_training.csv"
+    ],
+    "tests": {
+      "data/realworld/archive/openphish_20261005_unseen.csv": {
+        "exact_overlap_count": 0,
+        "domain_overlap_count": 0,
+        "exact_overlap_sample": [],
+        "domain_overlap_sample": []
+      }
+    },
+    "exact_overlap_total": 0,
+    "domain_overlap_total": 0,
+    "passed": true,
+    "failed_tests": []
+  },
+  "challengers": [
+    {
+      "version": "v20261012_094517",
+      "promotion_eligible": false,
+      "release_status": "candidate_not_promoted",
+      "outer": {
+        "accuracy": 0.9839228295819936,
+        "precision": 0.9924242424242424,
+        "recall": 0.9703703703703703,
+        "f1": 0.9812734082397003
+      },
+      "frozen": {
+        "accuracy": 0.9812206572769953,
+        "precision": 1.0,
+        "recall": 0.9622641509433962,
+        "f1": 0.9807692307692307
+      },
+      "fast_path_enabled": true,
+      "active_artifact_directory_exists": false
+    },
+    {
+      "version": "v20261012_094736",
+      "promotion_eligible": false,
+      "release_status": "candidate_not_promoted",
+      "outer": {
+        "accuracy": 0.9839228295819936,
+        "precision": 0.9924242424242424,
+        "recall": 0.9703703703703703,
+        "f1": 0.9812734082397003
+      },
+      "frozen": {
+        "accuracy": 0.9812206572769953,
+        "precision": 1.0,
+        "recall": 0.9622641509433962,
+        "f1": 0.9807692307692307
+      },
+      "fast_path_enabled": false,
+      "active_artifact_directory_exists": false
+    }
+  ],
+  "historic_positive_feed": {
+    "path": "data/realworld/archive/openphish_20261005_unseen.csv",
+    "retrieved_at": "2026-10-05",
+    "status": "historical_archive_not_current",
+    "listed_urls_visited": false
+  },
+  "live_feed_refresh": {
+    "status": "not_verified_in_this_runtime",
+    "feeds": [
+      {
+        "path": "data/feeds/live/openphish.csv",
+        "exists": false,
+        "metadata_exists": false,
+        "metadata": {}
+      },
+      {
+        "path": "data/feeds/live/urlhaus.csv",
+        "exists": false,
+        "metadata_exists": false,
+        "metadata": {}
+      }
+    ],
+    "local_index_runtime_metadata": {
+      "paths": [],
+      "entries": 0,
+      "sources": [],
+      "max_age_seconds": 86400,
+      "age_seconds": null,
+      "stale": true
+    }
+  },
+  "temporal_validation": {
+    "status": "BENCHMARK_SPLIT_PASS_PRODUCTION_MODEL_NOT_READY",
+    "benchmark_dataset_gate": {
+      "status": "pass",
+      "source_dataset": "PhishVN v5, official URL train/test folds, gold/silver labels only",
+      "cutoff": "2023-01-01 00:00:00+00:00",
+      "train_rows": 3183,
+      "test_rows": 845,
+      "timestamp_coverage": 1.0,
+      "exact_url_overlap": 0,
+      "registrable_domain_overlap": 0,
+      "license": "CC BY 4.0; attribution required; source data is retained locally and ignored by git"
+    },
+    "production_model_status": "NOT_READY",
+    "challenger_evaluation": {
+      "generated_at": "2026-11-18T10:32:13.745581+00:00",
+      "candidate_version": "v20261118_103146",
+      "candidate_training_cutoff": "2023-01-01 00:00:00+00:00",
+      "training_data_max_event_time": "2022-12-27T00:00:00+00:00",
+      "training_data_rows": 3183,
+      "training_source": "PhishVN v5 gold/silver official train fold, collected_at dates strictly before 2023-01-01",
+      "temporal_dataset_gate": "pass",
+      "temporal_holdout": {
+        "accuracy": 0.9976275207591934,
+        "precision": 0.9959100204498977,
+        "recall": 1.0,
+        "f1": 0.9979508196721312,
+        "roc_auc": 0.9999192487829638,
+        "pr_auc": 0.999940636061141,
+        "brier_score": 0.002365292646149248,
+        "false_positive_rate": 0.0056179775280898875,
+        "false_negative_rate": 0.0,
+        "tp": 487,
+        "tn": 354,
+        "fp": 2,
+        "fn": 0,
+        "threshold": 0.5,
+        "rows_scored": 843,
+        "invalid_http_rows_excluded": 2
+      },
+      "legitimate_homepage_challenge": {
+        "accuracy": 1.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "roc_auc": null,
+        "pr_auc": null,
+        "brier_score": 9.864183298063628e-06,
+        "false_positive_rate": 0.0,
+        "false_negative_rate": 0.0,
+        "tp": 0,
+        "tn": 21,
+        "fp": 0,
+        "fn": 0,
+        "threshold": 0.5,
+        "rows_scored": 21,
+        "invalid_http_rows_excluded": 0
+      },
+      "frozen_regression_gate": false,
+      "frozen_regression_metrics": {
+        "accuracy": 0.26291079812206575,
+        "precision": 0.3333333333333333,
+        "recall": 0.4811320754716981,
+        "f1": 0.3938223938223938,
+        "roc_auc": 0.36483865279492156,
+        "pr_auc": 0.5342308877793445,
+        "brier_score": 0.7303225922992772,
+        "false_positive_rate": 0.9532710280373832,
+        "false_negative_rate": 0.5188679245283019,
+        "tp": 51,
+        "tn": 5,
+        "fp": 102,
+        "fn": 55,
+        "threshold": 0.5
+      },
+      "promotion_eligible": false,
+      "production_model_version": "v20261001_104517",
+      "model_release_status": "candidate_temporal_evaluation_recorded; production promotion remains governed by independent frozen and real-world release gates",
+      "source_url": "https://data.mendeley.com/datasets/b97hxbxtpd/5",
+      "license": "CC BY 4.0; Thai Nguyen Vu attribution required",
+      "evaluation_urls_visited": false
+    },
+    "reason": "PhishVN v5 supplies a CC BY 4.0 source-attested temporal split and a pre-cutoff challenger was evaluated. The challenger fails frozen regression, so it was not promoted. CURRENT has no authentic per-row training timestamps and is not temporally qualified."
+  },
+  "cloud_scale": {
+    "status": "NOT_TESTED",
+    "reason": "A distributed cluster/load-generator run is required; sandbox replay is not a capacity result.",
+    "target_rps": {
+      "10m_in_15s": 666666.6666666666,
+      "10m_in_10s": 1000000
+    }
+  },
+  "dependency_cve_status": "UNVERIFIED until scanners run against the resolved release in network-enabled CI"
+}

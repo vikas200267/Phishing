@@ -1,0 +1,22 @@
+hostname,organization,evidence_url,evidence_source
+www.google.com,Google,https://www.google.com/,user-provided controlled-test summary
+www.wikipedia.org,Wikimedia Foundation,https://www.wikipedia.org/,user-provided controlled-test summary
+github.com,GitHub,https://github.com/,user-provided controlled-test summary
+www.microsoft.com,Microsoft,https://www.microsoft.com/,user-provided controlled-test summary
+www.python.org,Python Software Foundation,https://www.python.org/,user-provided controlled-test summary
+www.nasa.gov,NASA,https://www.nasa.gov/,user-provided controlled-test summary
+www.apple.com,Apple,https://www.apple.com/,official homepage cross-check via search provider
+www.adobe.com,Adobe,https://www.adobe.com/,official homepage cross-check via search provider
+www.mozilla.org,Mozilla,https://www.mozilla.org/,official homepage cross-check via search provider
+www.cloudflare.com,Cloudflare,https://www.cloudflare.com/,official homepage cross-check via search provider
+www.mit.edu,Massachusetts Institute of Technology,https://www.mit.edu/,official homepage cross-check via search provider
+www.stanford.edu,Stanford University,https://www.stanford.edu/,official homepage cross-check via search provider
+www.harvard.edu,Harvard University,https://www.harvard.edu/,official homepage cross-check via search provider
+www.debian.org,Debian,https://www.debian.org/,official homepage cross-check via search provider
+ubuntu.com,Canonical Ubuntu,https://ubuntu.com/,official homepage cross-check via search provider
+www.who.int,World Health Organization,https://www.who.int/,official homepage cross-check via search provider
+www.un.org,United Nations,https://www.un.org/,official homepage cross-check via search provider
+european-union.europa.eu,European Union,https://european-union.europa.eu/,official homepage cross-check via search provider
+www.ietf.org,Internet Engineering Task Force,https://www.ietf.org/,official homepage cross-check via search provider
+www.kernel.org,Linux Kernel Archives,https://www.kernel.org/,official homepage cross-check via search provider
+www.nist.gov,National Institute of Standards and Technology,https://www.nist.gov/,official homepage cross-check via search provider
