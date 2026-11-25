@@ -16,6 +16,7 @@ from app.url_model import load_bundle
 from app.train import domain_groups, evaluate, url_series
 from scripts.evaluate_phishvn_temporal import score_file
 from scripts.model_temporal_evidence import verify_model_temporal_inputs
+from scripts.evaluate_shortcuts import scheme_class_counts
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -109,6 +110,7 @@ def main():
         ),
     }
     gates['validation_predictions_integrity'] = validation_ok
+    gates['independent_calibration_protocol'] = metadata.get('stacking_split_protocol') == 'domain_disjoint_fit_calibration_threshold_v1'
     calibration_path=model_dir/'calibration_scores.csv'
     calibration_metrics=_calibration_metrics(calibration_path,metadata.get('calibration_scores_sha256'),float(candidate.threshold))
     gates['calibration_scores_integrity']=calibration_metrics is not None
@@ -172,9 +174,13 @@ def main():
         benign=labels==0
         fp=int(((predicted==1)&benign).sum())
         timestamp_coverage=float(challenge['observed_at'].fillna('').astype(str).str.strip().ne('').mean())
-        challenge_result.update({'rows':len(challenge),'unique_urls':len(challenge_urls),'duplicate_url_occurrences':duplicate_url_occurrences,'unique_registrable_domains':len(unique_domains),'exact_training_overlap':exact_overlap,'domain_training_overlap':domain_overlap,'false_positives':fp,'false_positive_rate':float(fp/max(1,int(benign.sum()))),'threshold':float(candidate.threshold),'challenge_sha256':challenge_hash,'provenance_sha256_match':file_integrity,'observed_at_coverage':timestamp_coverage})
+        verified = challenge.get('verification_status', pd.Series('', index=challenge.index)).fillna('').eq('verified_http_html')
+        verified &= pd.to_datetime(challenge['observed_at'], errors='coerce', utc=True).notna()
+        verified_domains=set(domain_groups(challenge.loc[verified]).astype(str)) - {''}
+        challenge_result.update({'rows':len(challenge),'unique_urls':len(challenge_urls),'duplicate_url_occurrences':duplicate_url_occurrences,'unique_registrable_domains':len(unique_domains),'verified_unique_domains':len(verified_domains),'exact_training_overlap':exact_overlap,'domain_training_overlap':domain_overlap,'false_positives':fp,'false_positive_rate':float(fp/max(1,int(benign.sum()))),'threshold':float(candidate.threshold),'challenge_sha256':challenge_hash,'provenance_sha256_match':file_integrity,'observed_at_coverage':timestamp_coverage})
         gates['legitimate_challenge_zero_false_positives']=bool(benign.any() and fp==0)
         gates['legitimate_challenge_minimum_coverage']=len(unique_domains)>=15
+        gates['legitimate_challenge_verified_coverage']=len(verified_domains)>=15
         gates['legitimate_challenge_training_disjoint']=prepared_domains_ok and exact_overlap==0 and domain_overlap==0
         gates['legitimate_challenge_is_default']=challenge_path.resolve()==(ROOT/'data/realworld/legitimate_challenge.csv').resolve()
         gates['legitimate_challenge_provenance']=file_integrity and bool(challenge_meta.get('label_source')) and timestamp_coverage>=0.8
@@ -183,19 +189,24 @@ def main():
         challenge_result['error']='challenge dataset missing'
         gates['legitimate_challenge_zero_false_positives']=False
         gates['legitimate_challenge_minimum_coverage']=False
+        gates['legitimate_challenge_verified_coverage']=False
         gates['legitimate_challenge_training_disjoint']=False
         gates['legitimate_challenge_provenance']=False
         gates['legitimate_challenge_no_duplicate_urls']=False
         gates['legitimate_challenge_is_default']=False
     temporal_evidence=verify_model_temporal_inputs(model_dir)
     temporal_metrics=None
+    temporal_scheme_counts=None
     if temporal_evidence['qualified']:
-        temporal_metrics=score_file(candidate, ROOT/'data/realworld/evaluations/phishvn_temporal/test.csv')
+        temporal_path=ROOT/'data/realworld/evaluations/phishvn_temporal/test.csv'
+        temporal_metrics=score_file(candidate, temporal_path)
+        temporal_scheme_counts=scheme_class_counts(pd.read_csv(temporal_path))
     gates['temporal_model_inputs_qualified']=temporal_evidence['qualified'] is True
     gates['temporal_precision']=bool(temporal_metrics and temporal_metrics['precision'] >= args.min_temporal_precision)
     gates['temporal_recall']=bool(temporal_metrics and temporal_metrics['recall'] >= args.min_temporal_recall)
     gates['temporal_false_positive_rate']=bool(temporal_metrics and temporal_metrics['false_positive_rate'] <= args.max_temporal_fpr)
     gates['temporal_support']=bool(temporal_metrics and temporal_metrics['tp'] + temporal_metrics['fn'] >= 50 and temporal_metrics['tn'] + temporal_metrics['fp'] >= 50)
+    gates['temporal_scheme_class_support']=bool(temporal_scheme_counts and all(n >= 10 for n in temporal_scheme_counts.values()))
     cur=current(); comparison=None
     if cur and cur != args.version:
         current_model=load_bundle(ROOT/'models'/cur/'model.joblib')
@@ -220,7 +231,7 @@ def main():
     gates.setdefault('non_regression_frozen',False)
     gates.setdefault('non_regression_realworld',False)
     passed=all(gates.values())
-    result={'version':args.version,'previous':cur,'passed':passed,'gates':gates,'calibration_metrics':calibration_metrics,'outer_metrics':metrics,'recorded_outer_metrics':recorded_metrics,'frozen_metrics':frozen,'legitimate_challenge':challenge_result,'temporal_evidence':temporal_evidence,'temporal_metrics':temporal_metrics,'comparison':comparison}
+    result={'version':args.version,'previous':cur,'passed':passed,'gates':gates,'calibration_metrics':calibration_metrics,'outer_metrics':metrics,'recorded_outer_metrics':recorded_metrics,'frozen_metrics':frozen,'legitimate_challenge':challenge_result,'temporal_evidence':temporal_evidence,'temporal_metrics':temporal_metrics,'temporal_scheme_class_counts':temporal_scheme_counts,'comparison':comparison}
     if not passed:
         print(json.dumps(result,indent=2)); raise SystemExit(2)
     if (ROOT/'models'/args.version).exists():

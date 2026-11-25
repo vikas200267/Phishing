@@ -480,6 +480,20 @@ def fit_fold_models(train_df, val_df, args, feature_names, sample_weight=None):
     return probs
 
 
+def split_stacking_partitions(frame: pd.DataFrame):
+    """Reserve disjoint domain groups for base fitting, calibration and threshold selection."""
+    groups = domain_groups(frame)
+    all_idx = np.arange(len(frame))
+    fit_idx, reserved_idx = next(GroupShuffleSplit(n_splits=1, test_size=.4, random_state=813).split(all_idx, frame['label'], groups))
+    reserved = frame.iloc[reserved_idx]
+    c_rel, t_rel = next(GroupShuffleSplit(n_splits=1, test_size=.5, random_state=814).split(reserved_idx, reserved['label'], domain_groups(reserved)))
+    cal_idx, threshold_idx = reserved_idx[c_rel], reserved_idx[t_rel]
+    for name, idx, minimum in [('fit', fit_idx, 100), ('calibration', cal_idx, 50), ('threshold', threshold_idx, 50)]:
+        if len(idx) < minimum or frame.iloc[idx]['label'].nunique() != 2:
+            raise ValueError(f'Insufficient class or domain support in {name} partition')
+    return fit_idx, cal_idx, threshold_idx
+
+
 def train(args):
     if getattr(args, 'promote', False):
         raise ValueError('Direct promotion during training is disabled; run scripts/promote_if_gates.py after independent evaluation.')
@@ -541,73 +555,67 @@ def train(args):
     if train_df['label'].nunique() < 2 or test_df['label'].nunique() < 2:
         raise ValueError('Outer split produced a single-class partition; add more diverse data.')
 
-    weights = source_weights(train_df, args.source_weight)
     groups = domain_groups(train_df)
-    n_splits = min(args.folds, max(3, groups.nunique() // 4))
+    fit_idx, calibration_idx, cal_idx = split_stacking_partitions(train_df)
+    fit_df = train_df.iloc[fit_idx].reset_index(drop=True)
+    calibration_df = train_df.iloc[calibration_idx].reset_index(drop=True)
+    threshold_df = train_df.iloc[cal_idx].reset_index(drop=True)
+    weights = source_weights(train_df, args.source_weight)
+    fit_weights = weights[fit_idx]
+    fit_groups = domain_groups(fit_df)
+    n_splits = min(args.folds, max(3, fit_groups.nunique() // 4))
+    if n_splits < 2:
+        raise ValueError('At least two OOF folds are required')
     sgkf = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=17)
     component_count = 7
-    oof = np.zeros((len(train_df), component_count), dtype=np.float32)
-    fold_id = np.full(len(train_df), -1, dtype=np.int32)
-    for f, (tr_idx, va_idx) in enumerate(sgkf.split(train_df, train_df['label'], groups=groups)):
-        fold_id[va_idx] = f
-        tr = train_df.iloc[tr_idx].copy(); va = train_df.iloc[va_idx].copy()
-        oof[va_idx] = fit_fold_models(tr, va, args, feature_names, sample_weight=weights[tr_idx])
+    oof = np.zeros((len(fit_df), component_count), dtype=np.float32)
+    for f, (tr_idx, va_idx) in enumerate(sgkf.split(fit_df, fit_df['label'], groups=fit_groups)):
+        tr = fit_df.iloc[tr_idx].copy(); va = fit_df.iloc[va_idx].copy()
+        oof[va_idx] = fit_fold_models(tr, va, args, feature_names, sample_weight=fit_weights[tr_idx])
         print(f'OOF fold {f+1}/{n_splits}: train={len(tr)} val={len(va)}')
 
-    # Use the final OOF fold as an untouched calibration/threshold fold.
-    cal_fold = n_splits - 1
-    meta_idx = np.where(fold_id != cal_fold)[0]
-    cal_idx = np.where(fold_id == cal_fold)[0]
-    if len(cal_idx) < 50:
-        cal_idx = meta_idx[-max(50, len(meta_idx)//6):]
-        meta_idx = meta_idx[:-len(cal_idx)]
-    meta_X = _meta_features(oof[meta_idx])
-    cal_X = _meta_features(oof[cal_idx])
     y_train = train_df['label'].astype(int).to_numpy()
-
+    y_fit = fit_df['label'].astype(int).to_numpy()
     meta_model = LogisticRegression(C=args.meta_C, max_iter=2000, class_weight='balanced')
-    meta_model.fit(meta_X, y_train[meta_idx], sample_weight=weights[meta_idx])
-    cal_raw = meta_model.predict_proba(cal_X)[:, 1]
-    calibrator = LogisticRegression(C=10.0, max_iter=1500)
-    calibrator.fit(cal_raw.reshape(-1, 1), y_train[cal_idx], sample_weight=weights[cal_idx])
-    cal_prob = calibrator.predict_proba(cal_raw.reshape(-1, 1))[:, 1]
-    threshold, cal_metrics, threshold_mode = choose_operating_threshold(cal_prob, y_train[cal_idx], min_precision=args.min_precision, min_recall=args.min_recall, lower=args.threshold_min, upper=args.threshold_max, max_fpr=args.max_calibration_fpr)
-    calibration_gate_passed = bool(cal_metrics['precision'] >= args.min_precision and cal_metrics['recall'] >= args.min_recall and cal_metrics['false_positive_rate'] <= args.max_calibration_fpr)
-
-    # Separately calibrate the structured fast-stage model from OOF predictions.
-    # Never use the outer test/frozen/live feed to pick its thresholds.
-    fast_calibrator = LogisticRegression(C=10.0, max_iter=1500)
-    fast_calibrator.fit(_logit_probability(oof[cal_idx, 0]), y_train[cal_idx], sample_weight=weights[cal_idx])
-    fast_cal_prob = fast_calibrator.predict_proba(_logit_probability(oof[cal_idx, 0]))[:, 1]
-    fast_low, fast_high, fast_calibration_metadata = choose_fast_thresholds(
-        fast_cal_prob, y_train[cal_idx],
-        min_negative_purity=args.fast_min_negative_purity,
-        max_missed_positive_rate=args.fast_max_missed_positive_rate,
-        min_high_precision=args.fast_min_high_precision,
-        min_support=args.fast_min_support,
-    )
-    suspicious_threshold, suspicious_calibration_metadata = choose_suspicious_threshold(
-        cal_prob, y_train[cal_idx], threshold, target_recall=args.suspicious_target_recall
-    )
+    meta_model.fit(_meta_features(oof), y_fit, sample_weight=fit_weights)
 
     # Hard-negative weighting is derived only from OOF predictions, never from the outer test set.
     oof_mean = oof.mean(axis=1)
-    full_oof_hard = ((oof_mean >= .5).astype(int) != y_train).astype(float)
-    hard_false_positive = ((y_train == 0) & (oof_mean >= .35)).astype(float)
-    train_struct = dataframe_to_features(train_df)
-    lexical_hard = ((y_train == 0) & (
+    full_oof_hard = ((oof_mean >= .5).astype(int) != y_fit).astype(float)
+    hard_false_positive = ((y_fit == 0) & (oof_mean >= .35)).astype(float)
+    train_struct = dataframe_to_features(fit_df)
+    lexical_hard = ((y_fit == 0) & (
         (train_struct['suspicious_token_count'].to_numpy() >= 1) |
         (train_struct['brand_in_hostname'].to_numpy() >= 1) |
         (train_struct['path_depth'].to_numpy() >= 3) |
         (train_struct['query_param_count'].to_numpy() >= 3)
     )).astype(float)
-    sample_weight = np.ones(len(train_df), dtype=np.float32)
+    sample_weight = np.ones(len(fit_df), dtype=np.float32)
     sample_weight += args.hard_negative_weight * full_oof_hard
     sample_weight += args.hard_negative_fp_weight * hard_false_positive
     sample_weight += args.lexical_hard_negative_weight * lexical_hard
-    sample_weight = np.clip(sample_weight, 1.0, 6.0) * weights
+    sample_weight = np.clip(sample_weight, 1.0, 6.0) * fit_weights
 
-    final_models, final_vecs = fit_components(train_df, args, sample_weight=sample_weight, feature_names=feature_names)
+    final_models, final_vecs = fit_components(fit_df, args, sample_weight=sample_weight, feature_names=feature_names)
+    # Both held-out partitions are scored by the exact base models that serve.
+    cal_components = component_predict(final_models, final_vecs, calibration_df, feature_names)
+    threshold_components = component_predict(final_models, final_vecs, threshold_df, feature_names)
+    calibration_raw = meta_model.predict_proba(_meta_features(cal_components))[:, 1]
+    threshold_raw = meta_model.predict_proba(_meta_features(threshold_components))[:, 1]
+    calibrator = LogisticRegression(C=10.0, max_iter=1500)
+    calibrator.fit(calibration_raw.reshape(-1, 1), y_train[calibration_idx], sample_weight=weights[calibration_idx])
+    cal_prob = calibrator.predict_proba(threshold_raw.reshape(-1, 1))[:, 1]
+    threshold, cal_metrics, threshold_mode = choose_operating_threshold(cal_prob, y_train[cal_idx], min_precision=args.min_precision, min_recall=args.min_recall, lower=args.threshold_min, upper=args.threshold_max, max_fpr=args.max_calibration_fpr)
+    calibration_gate_passed = bool(cal_metrics['precision'] >= args.min_precision and cal_metrics['recall'] >= args.min_recall and cal_metrics['false_positive_rate'] <= args.max_calibration_fpr)
+    fast_calibrator = LogisticRegression(C=10.0, max_iter=1500)
+    fast_calibrator.fit(_logit_probability(cal_components[:, 0]), y_train[calibration_idx], sample_weight=weights[calibration_idx])
+    fast_cal_prob = fast_calibrator.predict_proba(_logit_probability(threshold_components[:, 0]))[:, 1]
+    fast_low, fast_high, fast_calibration_metadata = choose_fast_thresholds(
+        fast_cal_prob, y_train[cal_idx], min_negative_purity=args.fast_min_negative_purity,
+        max_missed_positive_rate=args.fast_max_missed_positive_rate,
+        min_high_precision=args.fast_min_high_precision, min_support=args.fast_min_support)
+    suspicious_threshold, suspicious_calibration_metadata = choose_suspicious_threshold(
+        cal_prob, y_train[cal_idx], threshold, target_recall=args.suspicious_target_recall)
     test_components = component_predict(final_models, final_vecs, test_df, feature_names)
     test_meta = _meta_features(test_components)
     test_raw = meta_model.predict_proba(test_meta)[:, 1]
@@ -641,6 +649,8 @@ def train(args):
         'train_samples': int(len(train_df)), 'test_samples': int(len(test_df)),
         'positive_rate': float(df.label.mean()), 'train_domains': int(train_domain_count), 'test_domains': int(test_domain_count),
         'domain_overlap_outer_split': int(overlap), 'oof_folds': int(n_splits), 'calibration_samples': int(len(cal_idx)),
+        'stacking_split_protocol': 'domain_disjoint_fit_calibration_threshold_v1',
+        'base_fit_samples': int(len(fit_idx)), 'calibrator_fit_samples': int(len(calibration_idx)), 'threshold_selection_samples': int(len(cal_idx)),
         'threshold_mode': threshold_mode, 'component_models': ['xgboost_structured','lightgbm_structured','extratrees_structured','logistic_url_tfidf','logistic_host_tfidf','linear_svc_url_char','logistic_url_charwb'],
         'hard_negative_weight': float(args.hard_negative_weight), 'hard_negative_fp_weight': float(args.hard_negative_fp_weight), 'lexical_hard_negative_weight': float(args.lexical_hard_negative_weight), 'hard_negative_count': int(full_oof_hard.sum()), 'hard_false_positive_count': int(hard_false_positive.sum()), 'lexical_hard_negative_count': int(lexical_hard.sum()),
         'calibration_metrics': cal_metrics,
@@ -736,6 +746,7 @@ def train(args):
         'temporal_source_metadata_sha256': sha256_file(getattr(args, 'temporal_source_metadata', None)),
         'release_gate': args.exclude_domains_csv,
         'training_domain_count': len(training_domains),
+        'stacking_split_protocol': 'domain_disjoint_fit_calibration_threshold_v1',
         'domain_grouping_version': DOMAIN_GROUPING_VERSION,
         'training_domains_sha256': sha256_file(str(out / 'training_domains.txt')),
         'prepared_domains_sha256': sha256_file(str(out / 'prepared_domains.txt')),

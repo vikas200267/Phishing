@@ -32,6 +32,34 @@ Neither candidate passes the frozen, homepage and temporal release checks.
 The frozen and homepage sets have been used repeatedly during development;
 their scores must not be represented as a fresh final acceptance test.
 
+### Scheme shortcut audit
+
+On the 843 valid PhishVN temporal holdout rows, the pre-cutoff model
+`v20261118_103146` made exactly the same binary decisions as the simple rule
+“HTTP is phishing, HTTPS is benign.” Both achieved 99.76% accuracy on this
+sample. The holdout contains 487 HTTP and zero HTTPS phishing rows, and two
+HTTP and 354 HTTPS benign rows. This confounding means the headline temporal
+accuracy does not demonstrate general phishing detection. Replacing only the
+scheme changed that model's decision on 615/843 URLs; the altered URLs were
+not visited or relabeled, since the two schemes can serve different content.
+Run `scripts/evaluate_shortcuts.py` to reproduce this diagnostic. The release
+gate now requires at least ten valid holdout examples in each class/scheme
+combination; this PhishVN holdout does not meet that requirement.
+
+Only 15 of the 21 homepage observations completed as verified HTTP HTML;
+the other six have recorded failed attempts. The release gate now requires at
+least 15 distinct domains with successful recorded observations, in addition to
+checking all challenge scores.
+
+The training pipeline now reserves separate domain groups for the base and
+stack fitting, calibrator fitting, and threshold selection. Earlier candidates
+used a calibration fold that indirectly influenced the stacker; their
+calibration results must be treated as diagnostic. A small corrected-split
+smoke challenger (`v20261125_070600`, five trees per structured model) scored
+0/21 homepage false positives but produced 102/107 benign false positives and
+55/106 phishing misses on the reused frozen set. It is not promoted and is not
+a production-quality training run.
+
 ## Current feed replay and registered-domain proxy
 
 OpenPhish was refreshed at 06:25 UTC on November 25, receiving 300 entries.

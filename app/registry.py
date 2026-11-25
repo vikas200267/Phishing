@@ -21,6 +21,7 @@ REQUIRED_RELEASE_GATES = frozenset({
     'non_regression_frozen', 'non_regression_realworld',
     'legitimate_challenge_zero_false_positives',
     'legitimate_challenge_minimum_coverage',
+    'legitimate_challenge_verified_coverage',
     'legitimate_challenge_training_disjoint',
     'legitimate_challenge_provenance',
     'legitimate_challenge_no_duplicate_urls',
@@ -30,8 +31,10 @@ REQUIRED_RELEASE_GATES = frozenset({
     'release_thresholds_enforced', 'realworld_sample_is_default', 'realworld_domain_disjoint',
     'calibration_scores_integrity', 'calibration_precision', 'calibration_recall',
     'calibration_false_positive_rate', 'calibration_support',
+    'independent_calibration_protocol',
     'temporal_model_inputs_qualified', 'temporal_precision',
     'temporal_recall', 'temporal_false_positive_rate', 'temporal_support',
+    'temporal_scheme_class_support',
 })
 
 
@@ -220,6 +223,7 @@ def validate_release_approval(version: str) -> dict:
             or not REQUIRED_RELEASE_GATES.issubset(gates)
             or not all(value is True for value in gates.values())
             or challenge.get('unique_registrable_domains', 0) < 15
+            or challenge.get('verified_unique_domains', 0) < 15
             or challenge.get('false_positives', 1) != 0
             or challenge.get('exact_training_overlap', 1) != 0
             or challenge.get('domain_training_overlap', 1) != 0

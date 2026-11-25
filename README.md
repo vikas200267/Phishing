@@ -71,6 +71,11 @@ retained as a separate CC BY-NC research-only cross-check and is never used to
 train or ship the production model. See the dated report for the evaluation
 details and limits.
 
+That temporal holdout is heavily confounded by URL scheme: an HTTP-only rule
+matches all 843 of that challenger's decisions. It does not provide adequate
+evidence of general phishing detection. The release gate requires both labels
+to have HTTP and HTTPS examples, and the present holdout fails this check.
+
 Cross-source challengers trained with broader public data improved on the
 LegitPhish v2 holdout and homepage corpus, but exposed a substantial conflict
 with the frozen regression population. Candidate `v20261118_143528` reached

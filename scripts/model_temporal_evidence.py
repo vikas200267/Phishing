@@ -26,10 +26,10 @@ def _sha(path: Path) -> str:
 
 
 def _rows(frame: pd.DataFrame) -> set[tuple[str, int]]:
-    labels = pd.to_numeric(frame['label'], errors='raise').astype(int)
+    labels = pd.to_numeric(frame['label'], errors='raise')
     if not labels.isin([0, 1]).all():
         raise ValueError('non-binary label')
-    return set(zip(url_series(frame).astype(str), labels))
+    return set(zip(url_series(frame).astype(str), labels.astype(int)))
 
 
 def verify_model_temporal_inputs(model_dir: Path, data_dir: Path = DATA_DIR) -> dict:
@@ -50,6 +50,10 @@ def verify_model_temporal_inputs(model_dir: Path, data_dir: Path = DATA_DIR) -> 
         for name, frame in [('dataset', dataset), ('train', train), ('test', test)]:
             if not {'url', 'label', 'event_time'}.issubset(frame.columns):
                 raise ValueError(f'{name} is missing URL, label, or source event time')
+            urls = url_series(frame).astype(str)
+            if urls.duplicated().any():
+                raise ValueError(f'{name} contains duplicate normalized URLs')
+            _rows(frame)
         train_times = pd.to_datetime(train['event_time'], utc=True, errors='coerce')
         test_times = pd.to_datetime(test['event_time'], utc=True, errors='coerce')
         if train_times.isna().any() or test_times.isna().any() or not train_times.lt(cutoff).all() or not test_times.ge(cutoff).all():
@@ -67,6 +71,9 @@ def verify_model_temporal_inputs(model_dir: Path, data_dir: Path = DATA_DIR) -> 
             raise ValueError('dated training and holdout URLs or domain groups overlap')
         if any(int((test['label'] == label).sum()) < 50 for label in (0, 1)):
             raise ValueError('dated holdout has insufficient class support')
+        test_groups = domain_groups(pd.DataFrame({'_normalized_url': url_series(test)}))
+        if '' in set(test_groups) or any(test_groups[test['label'] == label].nunique() < 20 for label in (0, 1)):
+            raise ValueError('dated holdout has insufficient independent domain support')
         sources = metadata.get('data_sources') or {}
         params = metadata.get('training_parameters') or {}
         checked = 0

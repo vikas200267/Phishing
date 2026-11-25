@@ -16,6 +16,7 @@ from app.train import choose_operating_threshold, choose_split, domain_groups, e
 from scripts.model_temporal_evidence import verify_model_temporal_inputs
 from scripts.realworld_eval import metric_summary, overlaps_training_domain
 from scripts.promote_if_gates import _calibration_metrics
+from scripts.evaluate_shortcuts import assess
 
 
 def test_threshold_search_matches_exhaustive_reference():
@@ -82,6 +83,18 @@ def test_positive_only_feed_does_not_claim_precision_or_accuracy():
     assert report['false_positive_rate'] is None
 
 
+def test_scheme_diagnostic_reports_shortcut_without_labeling_counterfactuals():
+    class SchemeModel:
+        threshold = .5
+        def predict_proba(self, urls):
+            return np.array([.9 if url.startswith('http://') else .1 for url in urls])
+    frame = pd.DataFrame({'url': ['http://bad.example/', 'https://good.example/'], 'label': [1, 0]})
+    report = assess(SchemeModel(), frame)
+    assert report['baseline_model_decision_agreement'] == 1
+    assert report['scheme_change_decision_flip_rate'] == 1
+    assert report['scheme_changed_urls_are_not_assigned_labels'] is True
+
+
 def test_local_feed_expires_even_when_file_is_unchanged(monkeypatch, tmp_path):
     import app.local_intel as intel
     now = datetime(2026, 1, 1, tzinfo=timezone.utc)
@@ -122,6 +135,11 @@ def test_temporal_qualification_checks_each_recorded_input(tmp_path):
         sources[name] = {'path': str(path), 'sha256': _sha(path)}
     (model / 'metadata.json').write_text(json.dumps({'data_sources': sources}))
     assert verify_model_temporal_inputs(model, data)['qualified'] is True
+    pd.concat([test, test.iloc[:1]]).to_csv(data / 'test.csv', index=False)
+    duplicate_result = verify_model_temporal_inputs(model, data)
+    assert duplicate_result['qualified'] is False
+    assert 'duplicate normalized URLs' in duplicate_result['reason']
+    test.to_csv(data / 'test.csv', index=False)
     extra = tmp_path / 'extra.csv'
     pd.DataFrame([{'url': 'https://undated.example/', 'label': 0}]).to_csv(extra, index=False)
     sources['extra'] = {'path': str(extra), 'sha256': _sha(extra)}
@@ -168,7 +186,7 @@ def test_release_approval_is_bound_to_actual_challenge(monkeypatch, tmp_path):
     challenge = tmp_path / 'data/realworld/legitimate_challenge.csv'; challenge.parent.mkdir(parents=True)
     challenge.write_text('url,label\nhttps://example.com/,0\n')
     (model / 'model.joblib').write_bytes(b'model')
-    evidence = {'unique_registrable_domains': 15, 'false_positives': 0, 'exact_training_overlap': 0, 'domain_training_overlap': 0, 'observed_at_coverage': 1, 'provenance_sha256_match': True, 'challenge_sha256': _sha(challenge)}
+    evidence = {'unique_registrable_domains': 15, 'verified_unique_domains': 15, 'false_positives': 0, 'exact_training_overlap': 0, 'domain_training_overlap': 0, 'observed_at_coverage': 1, 'provenance_sha256_match': True, 'challenge_sha256': _sha(challenge)}
     approval = {'schema_version': 2, 'approved': True, 'model_version': 'v1', 'model_sha256': _sha(model / 'model.joblib'), 'challenge_sha256': _sha(challenge), 'legitimate_challenge': evidence, 'passed_gates': {gate: True for gate in registry.REQUIRED_RELEASE_GATES}}
     (model / 'BLOCKING_APPROVED.json').write_text(json.dumps(approval))
     monkeypatch.setattr(registry, 'ROOT', tmp_path)

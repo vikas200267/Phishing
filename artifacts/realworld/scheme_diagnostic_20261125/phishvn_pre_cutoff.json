@@ -1,0 +1,51 @@
+{
+  "model_version": "v20261118_103146",
+  "model_sha256": "ef18a3c8dbfe8b81b5ddcce8010e418bdae32bf3dc65ecb9e3af71b33f9f98e0",
+  "dataset_sha256": "29b6dadd70cd8620de341aa99bbe727934d3d8592f4aab2b09b3734e3499ba11",
+  "metrics": {
+    "rows": 843,
+    "invalid_http_rows_excluded": 2,
+    "model": {
+      "accuracy": 0.9976275207591934,
+      "precision": 0.9959100204498977,
+      "recall": 1.0,
+      "f1": 0.9979508196721312,
+      "roc_auc": 0.9999192487829638,
+      "pr_auc": 0.999940636061141,
+      "brier_score": 0.002365292646149248,
+      "false_positive_rate": 0.0056179775280898875,
+      "false_negative_rate": 0.0,
+      "tp": 487,
+      "tn": 354,
+      "fp": 2,
+      "fn": 0,
+      "threshold": 0.5
+    },
+    "http_only_baseline": {
+      "accuracy": 0.9976275207591934,
+      "precision": 0.9959100204498977,
+      "recall": 1.0,
+      "f1": 0.9979508196721312,
+      "roc_auc": 0.997191011235955,
+      "pr_auc": 0.9959100204498977,
+      "brier_score": 0.002372479240806643,
+      "false_positive_rate": 0.0056179775280898875,
+      "false_negative_rate": 0.0,
+      "tp": 487,
+      "tn": 354,
+      "fp": 2,
+      "fn": 0,
+      "threshold": 0.5
+    },
+    "baseline_model_decision_agreement": 1.0,
+    "scheme_class_counts": {
+      "0_http": 2,
+      "0_https": 354,
+      "1_http": 487,
+      "1_https": 0
+    },
+    "scheme_change_decision_flip_rate": 0.7295373665480427,
+    "scheme_changed_urls_are_not_assigned_labels": true
+  },
+  "interpretation": "The scheme-only rule is a diagnostic baseline, not a phishing detector. Changed-scheme URLs were not visited or assigned ground-truth labels."
+}
