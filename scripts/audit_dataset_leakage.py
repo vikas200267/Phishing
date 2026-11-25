@@ -4,19 +4,12 @@ from pathlib import Path
 import sys
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
-from urllib.parse import urlparse
 import pandas as pd
 from app.features import normalize_url
-
-TWO={'co.uk','org.uk','ac.uk','gov.uk','com.au','net.au','org.au','co.in','com.br','co.jp','co.nz','co.za'}
+from app.domain import registrable_domain
 
 def registrable(url: str)->str:
-    try: host=(urlparse(normalize_url(url)).hostname or '').lower().strip('.')
-    except Exception: host=''
-    labels=[x for x in host.split('.') if x]
-    if len(labels)<=2:return host
-    suffix='.'.join(labels[-2:])
-    return '.'.join(labels[-3:]) if suffix in TWO and len(labels)>=3 else suffix
+    return registrable_domain(normalize_url(url))
 
 def load(path: Path):
     df=pd.read_csv(path)

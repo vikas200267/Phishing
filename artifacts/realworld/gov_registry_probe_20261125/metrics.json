@@ -1,0 +1,34 @@
+{
+  "collected_at": "2026-11-25T06:36:54.864044+00:00",
+  "source_url": "https://raw.githubusercontent.com/cisagov/dotgov-data/main/current-federal.csv",
+  "source_sha256": "a31ce96cac9d5d99d1fb29e44aa6701f26154f158b9f07bda85f4ec3720109f6",
+  "sample_sha256": "a8786a484f412496b628692b0bb70014df4956498361bd82274cad178418dc8e",
+  "sample_method": "SHA-256 sorted registered federal .gov roots after excluding all supplied model input domains and prior challenge domains",
+  "sample_size": 500,
+  "models": {
+    "v20261001_104517": {
+      "threshold": 0.2634677821600013,
+      "domains": 500,
+      "scores_at_or_above_threshold": 500,
+      "fraction_at_or_above_threshold": 1.0
+    },
+    "v20261125_062523": {
+      "threshold": 0.7303461538461538,
+      "domains": 500,
+      "scores_at_or_above_threshold": 7,
+      "fraction_at_or_above_threshold": 0.014
+    },
+    "v20261125_063617": {
+      "threshold": 0.033683209552273004,
+      "domains": 500,
+      "scores_at_or_above_threshold": 306,
+      "fraction_at_or_above_threshold": 0.612
+    }
+  },
+  "role": "registered government domain proxy; not independently verified benign URL labels",
+  "limitations": [
+    "A domain registration does not establish that a website exists or is safe.",
+    "This is not a false-positive-rate or general-population accuracy estimate.",
+    "Listed websites were not visited."
+  ]
+}

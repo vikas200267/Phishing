@@ -20,7 +20,9 @@ from sklearn.model_selection import GroupShuffleSplit, StratifiedGroupKFold
 from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
 
-from .features import MODEL_FEATURE_NAMES, TWO_PART_SUFFIXES, dataframe_to_features, normalize_url
+from .features import MODEL_FEATURE_NAMES, dataframe_to_features, normalize_url
+from .domain import DOMAIN_GROUPING_VERSION, registrable_domain
+from .policy import valid_http_url
 from .url_model import URLModelBundle, _meta_features
 from .registry import update_manifest
 
@@ -28,12 +30,6 @@ ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = ROOT / 'models'; DATA_DIR = ROOT / 'data'
 MODEL_DIR.mkdir(exist_ok=True); DATA_DIR.mkdir(exist_ok=True)
 SCHEMA_VERSION = 6
-# Extend domain grouping without changing serving-time model features of an
-# already registered artifact.
-DOMAIN_GROUP_SUFFIXES = TWO_PART_SUFFIXES | frozenset({
-    'com.vn', 'gov.vn', 'org.vn', 'edu.vn', 'net.vn', 'ac.vn', 'co.vn',
-    'com.th', 'co.th', 'or.th', 'go.th', 'ac.th',
-})
 
 
 def sha256_file(path: str | None) -> str | None:
@@ -50,6 +46,8 @@ def url_series(df: pd.DataFrame) -> pd.Series:
     out = []
     for _, r in df.iterrows():
         raw = r.get('url')
+        if pd.isna(raw) or not str(raw).strip() or str(raw).strip().lower() in {'nan', 'none'}:
+            raw = r.get('_normalized_url')
         if pd.notna(raw) and str(raw).strip() and str(raw).strip().lower() not in {'nan','none'}:
             out.append(normalize_url(str(raw)))
         else:
@@ -81,6 +79,10 @@ def load_data(phishing: str, legitimate: str, extra: str | None = None) -> pd.Da
     df = pd.concat(frames, ignore_index=True)
     df['_normalized_url'] = url_series(df)
     df = df[df['_normalized_url'].str.len() >= 8].copy()
+    valid = df['_normalized_url'].map(valid_http_url)
+    if (~valid).any():
+        print(f'Excluded {int((~valid).sum())} URLs rejected by the serving URL policy.', flush=True)
+    df = df[valid].copy()
     df = df.drop_duplicates(subset=['_normalized_url', 'label'])
     conflicts = df.groupby('_normalized_url')['label'].nunique()
     bad = set(conflicts[conflicts > 1].index)
@@ -90,20 +92,7 @@ def load_data(phishing: str, legitimate: str, extra: str | None = None) -> pd.Da
 
 
 def domain_groups(df: pd.DataFrame) -> pd.Series:
-    def group(u: str) -> str:
-        try:
-            host = (urlparse(str(u)).hostname or '').lower().strip('.')
-        except (ValueError, TypeError):
-            host = ''
-        labels = [x for x in host.split('.') if x]
-        if len(labels) <= 2:
-            return host
-        # Align with the feature extractor's common ccTLD handling.
-        suffix2 = '.'.join(labels[-2:])
-        if suffix2 in DOMAIN_GROUP_SUFFIXES:
-            return '.'.join(labels[-3:])
-        return '.'.join(labels[-2:])
-    return df['_normalized_url'].map(group)
+    return df['_normalized_url'].map(registrable_domain)
 
 
 def domain_set_from_csv(path: str | None) -> set[str]:
@@ -113,17 +102,48 @@ def domain_set_from_csv(path: str | None) -> set[str]:
     if not p.exists():
         raise FileNotFoundError(p)
     d = pd.read_csv(p)
-    if 'label' not in d.columns and not any(c in d.columns for c in ('url','_normalized_url','domain_name')):
+    if not any(c in d.columns for c in ('url','_normalized_url','domain_name')):
         raise ValueError(f'--exclude-domains-csv needs url/_normalized_url/domain_name: {p}')
     urls = url_series(d)
-    return set(domain_groups(pd.DataFrame({'_normalized_url': urls})).astype(str))
+    domains = set(domain_groups(pd.DataFrame({'_normalized_url': urls})).astype(str)) - {''}
+    if not domains:
+        raise ValueError(f'--exclude-domains-csv contains no usable domains: {p}')
+    return domains
 
 
-def choose_split(df: pd.DataFrame, require_temporal: bool = False):
-    candidates = [c for c in ['timestamp','created_at','observed_at','date','datetime','submission_time','verification_time','collected_at'] if c in df.columns]
+def validate_temporal_sources(args) -> str:
+    """Require hashed, source-attested event times for every training input."""
+    metadata_path = getattr(args, 'temporal_source_metadata', None)
+    if not metadata_path:
+        raise ValueError('--require-temporal needs --temporal-source-metadata for every input file')
+    meta = json.loads(Path(metadata_path).read_text(encoding='utf-8'))
+    semantics = str(meta.get('timestamp_semantics') or '').lower()
+    if meta.get('timestamp_provenance') not in {'source_attested', 'source_provided'} or not any(
+        term in semantics for term in ('first seen', 'first-seen', 'first_seen', 'first observed', 'collection date', 'collected_at', 'submission time', 'verification time')
+    ):
+        raise ValueError('Temporal metadata must describe source-attested event times, not retrieval times')
+    column = str(meta.get('timestamp_column') or '').strip()
+    if not column:
+        raise ValueError('Temporal metadata must name the event-time column')
+    recorded = {str(Path(item['path']).resolve()): item.get('sha256') for item in meta.get('source_files', [])}
+    for name in ('phishing', 'legitimate', 'extra'):
+        path = getattr(args, name, None)
+        if not path:
+            continue
+        expected = recorded.get(str(Path(path).resolve()))
+        if not expected or sha256_file(path) != expected:
+            raise ValueError(f'Temporal metadata does not verify the {name} input file')
+    return column
+
+
+def choose_split(df: pd.DataFrame, require_temporal: bool = False, timestamp_column: str | None = None):
+    candidates = [timestamp_column] if timestamp_column else [c for c in ['event_time','first_seen','timestamp','created_at','observed_at','date','datetime','submission_time','verification_time','collected_at'] if c in df.columns]
     for c in candidates:
+        if c not in df.columns:
+            continue
         ts = pd.to_datetime(df[c], errors='coerce', utc=True)
-        if ts.notna().sum() >= max(100, int(.7 * len(df))) and ts.dropna().nunique() > 1:
+        required_count = len(df) if require_temporal else max(100, int(.7 * len(df)))
+        if ts.notna().sum() >= required_count and ts.dropna().nunique() > 1:
             valid = ts.dropna().sort_values()
             cut = int(len(valid) * .8)
             if 0 < cut < len(valid):
@@ -139,6 +159,9 @@ def choose_split(df: pd.DataFrame, require_temporal: bool = False):
                     i for i in test_idx
                     if str(df.at[i, '_normalized_url']) not in train_urls
                 ], dtype=int)
+                if require_temporal:
+                    train_domains = set(domain_groups(df.loc[train_idx]).astype(str))
+                    test_idx = np.asarray([i for i in test_idx if registrable_domain(df.at[i, '_normalized_url']) not in train_domains], dtype=int)
                 if len(train_idx) >= 100 and len(test_idx) >= 50:
                     return train_idx, test_idx, 'temporal', c
     if require_temporal:
@@ -199,33 +222,78 @@ def evaluate(prob, y, threshold):
     }
 
 
-def choose_operating_threshold(prob, y, min_precision=0.985, min_recall=0.95, lower=0.10, upper=0.75):
+def source_weights(frame: pd.DataFrame, specifications: list[str] | None) -> np.ndarray:
+    """Return explicit source weights without using evaluation labels or scores."""
+    weights = np.ones(len(frame), dtype=np.float64)
+    if not specifications:
+        return weights
+    if 'source' not in frame.columns:
+        raise ValueError('Source weights require a source column in the training data')
+    sources = frame['source'].fillna('').astype(str)
+    seen = set()
+    for specification in specifications:
+        source, sep, value = specification.rpartition('=')
+        if not sep or not source or source in seen:
+            raise ValueError(f'Invalid or duplicate source weight: {specification!r}')
+        try:
+            factor = float(value)
+        except ValueError as exc:
+            raise ValueError(f'Invalid source weight: {specification!r}') from exc
+        if not np.isfinite(factor) or not 0 < factor <= 100:
+            raise ValueError('Source weights must be finite, greater than zero, and at most 100')
+        mask = sources.eq(source).to_numpy()
+        if not mask.any():
+            raise ValueError(f'Weighted source not found in training data: {source}')
+        weights[mask] = factor
+        seen.add(source)
+    return weights
+
+
+def choose_operating_threshold(prob, y, min_precision=0.985, min_recall=0.95, lower=0.10, upper=0.75, max_fpr=None):
     # Robust threshold selection: avoid degenerate near-1.0 thresholds caused by
     # a small calibration fold. Prefer a balanced operating point that keeps both
     # precision and recall high, with a bounded search range.
     candidates = np.unique(np.clip(np.r_[np.linspace(lower, upper, 261), prob], lower, upper))
-    feasible = []
-    for t in candidates:
-        m = evaluate(prob, y, float(t))
-        if m['precision'] >= min_precision and m['recall'] >= min_recall:
-            # F1 is the primary objective; small preference for thresholds near .5
-            # keeps the operating point stable instead of selecting an extreme.
-            stability = -abs(float(t) - 0.5)
-            feasible.append((m['f1'], min(m['precision'], m['recall']), m['accuracy'], stability, float(t), m))
-    if feasible:
-        feasible.sort(reverse=True, key=lambda x: (x[1], x[0], x[2], x[3]))
-        best = feasible[0]
-        return best[4], best[5], 'bounded_precision_recall'
-    best = None
-    for t in candidates:
-        m = evaluate(prob, y, float(t))
-        # Graceful fallback: maximize F1 while softly penalizing precision/recall
-        # below the requested minimums.
-        penalty = max(0.0, min_precision - m['precision']) + max(0.0, min_recall - m['recall'])
-        score = (m['f1'] - 0.75 * penalty, min(m['precision'], m['recall']), m['accuracy'], -abs(float(t)-0.5))
-        item=(score,float(t),m)
-        if best is None or item[0] > best[0]: best=item
-    return best[1], best[2], 'bounded_balanced_fallback'
+    # Compute all confusion matrices from sorted scores in O(n log n). Calling
+    # sklearn's full metrics (including AUC) once per candidate is quadratic.
+    p = np.asarray(prob, dtype=float).reshape(-1)
+    labels = np.asarray(y, dtype=int).reshape(-1)
+    if len(p) == 0 or len(p) != len(labels):
+        raise ValueError('Threshold selection requires equally sized nonempty arrays')
+    order = np.argsort(p, kind='stable')
+    sorted_p, sorted_y = p[order], labels[order]
+    positive_suffix = np.r_[np.cumsum((sorted_y == 1)[::-1])[::-1], 0]
+    negative_suffix = np.r_[np.cumsum((sorted_y == 0)[::-1])[::-1], 0]
+    indices = np.searchsorted(sorted_p, candidates, side='left')
+    tp, fp = positive_suffix[indices], negative_suffix[indices]
+    positives, negatives = positive_suffix[0], negative_suffix[0]
+    precision = np.divide(tp, tp + fp, out=np.zeros(len(tp), dtype=float), where=(tp + fp) != 0)
+    recall = tp / max(positives, 1)
+    f1_denom = 2 * tp + fp + (positives - tp)
+    f1 = np.divide(2 * tp, f1_denom, out=np.zeros(len(tp), dtype=float), where=f1_denom != 0)
+    accuracy = (tp + negatives - fp) / len(labels)
+    balanced = np.minimum(precision, recall)
+    stability = -np.abs(candidates - .5)
+    fpr = fp / max(negatives, 1)
+    feasible_mask = (precision >= min_precision) & (recall >= min_recall)
+    if max_fpr is not None:
+        if not 0 <= max_fpr <= 1:
+            raise ValueError('max_fpr must be between zero and one')
+        feasible_mask &= fpr <= max_fpr
+    feasible = np.flatnonzero(feasible_mask)
+    if len(feasible):
+        # argmax on an ordered tuple preserves the original first-candidate tie rule.
+        best = max(feasible, key=lambda i: (balanced[i], f1[i], accuracy[i], stability[i]))
+        mode = 'bounded_precision_recall'
+    else:
+        penalty = np.maximum(0, min_precision - precision) + np.maximum(0, min_recall - recall)
+        if max_fpr is not None:
+            penalty += np.maximum(0, fpr - max_fpr)
+        score = f1 - .75 * penalty
+        best = max(range(len(candidates)), key=lambda i: (score[i], balanced[i], accuracy[i], stability[i]))
+        mode = 'bounded_balanced_fallback'
+    threshold = float(candidates[best])
+    return threshold, evaluate(p, labels, threshold), mode
 
 
 
@@ -406,13 +474,18 @@ def component_predict(models, vectorizers, df, feature_names=None):
     ])
 
 
-def fit_fold_models(train_df, val_df, args, feature_names):
-    models, vecs = fit_components(train_df, args, feature_names=feature_names)
+def fit_fold_models(train_df, val_df, args, feature_names, sample_weight=None):
+    models, vecs = fit_components(train_df, args, sample_weight=sample_weight, feature_names=feature_names)
     probs = component_predict(models, vecs, val_df, feature_names)
     return probs
 
 
 def train(args):
+    if getattr(args, 'promote', False):
+        raise ValueError('Direct promotion during training is disabled; run scripts/promote_if_gates.py after independent evaluation.')
+    if not 0 <= getattr(args, 'max_calibration_fpr', .01) <= 1:
+        raise ValueError('max_calibration_fpr must be between zero and one')
+    temporal_column = validate_temporal_sources(args) if getattr(args, 'require_temporal', False) else None
     df = load_data(args.phishing, args.legitimate, args.extra)
     feature_names = MODEL_FEATURE_NAMES
     if args.feature_schema_file:
@@ -434,8 +507,13 @@ def train(args):
     exclusion_hashes = {}
     for exclusion in exclusion_files:
         ex = pd.read_csv(exclusion)
-        if 'url' in ex.columns or 'domain_name' in ex.columns or '_normalized_url' in ex.columns:
-            excluded_urls.update(url_series(ex).dropna().astype(str).tolist())
+        if not any(col in ex.columns for col in ('url', 'domain_name', '_normalized_url')):
+            raise ValueError(f'required exclusion file has no URL field: {exclusion}')
+        exclusion_urls = url_series(ex).dropna().astype(str)
+        exclusion_urls = exclusion_urls[exclusion_urls.map(valid_http_url)]
+        if exclusion_urls.empty:
+            raise ValueError(f'required exclusion file has no valid URLs: {exclusion}')
+        excluded_urls.update(exclusion_urls.tolist())
         exclusion_hashes[str(exclusion)] = sha256_file(str(exclusion))
     if args.exclude_domains_csv:
         exclusion_hashes[str(args.exclude_domains_csv)] = sha256_file(args.exclude_domains_csv)
@@ -457,12 +535,13 @@ def train(args):
     if len(df) < 200 or df['label'].nunique() < 2:
         raise ValueError(f'Insufficient training data: {len(df)} rows / {df.label.nunique()} classes')
 
-    outer_tr, outer_te, split_type, split_column = choose_split(df, require_temporal=args.require_temporal)
+    outer_tr, outer_te, split_type, split_column = choose_split(df, require_temporal=args.require_temporal, timestamp_column=temporal_column)
     train_df = df.iloc[outer_tr].copy().reset_index(drop=True)
     test_df = df.iloc[outer_te].copy().reset_index(drop=True)
     if train_df['label'].nunique() < 2 or test_df['label'].nunique() < 2:
         raise ValueError('Outer split produced a single-class partition; add more diverse data.')
 
+    weights = source_weights(train_df, args.source_weight)
     groups = domain_groups(train_df)
     n_splits = min(args.folds, max(3, groups.nunique() // 4))
     sgkf = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=17)
@@ -472,7 +551,7 @@ def train(args):
     for f, (tr_idx, va_idx) in enumerate(sgkf.split(train_df, train_df['label'], groups=groups)):
         fold_id[va_idx] = f
         tr = train_df.iloc[tr_idx].copy(); va = train_df.iloc[va_idx].copy()
-        oof[va_idx] = fit_fold_models(tr, va, args, feature_names)
+        oof[va_idx] = fit_fold_models(tr, va, args, feature_names, sample_weight=weights[tr_idx])
         print(f'OOF fold {f+1}/{n_splits}: train={len(tr)} val={len(va)}')
 
     # Use the final OOF fold as an untouched calibration/threshold fold.
@@ -487,17 +566,18 @@ def train(args):
     y_train = train_df['label'].astype(int).to_numpy()
 
     meta_model = LogisticRegression(C=args.meta_C, max_iter=2000, class_weight='balanced')
-    meta_model.fit(meta_X, y_train[meta_idx])
+    meta_model.fit(meta_X, y_train[meta_idx], sample_weight=weights[meta_idx])
     cal_raw = meta_model.predict_proba(cal_X)[:, 1]
     calibrator = LogisticRegression(C=10.0, max_iter=1500)
-    calibrator.fit(cal_raw.reshape(-1, 1), y_train[cal_idx])
+    calibrator.fit(cal_raw.reshape(-1, 1), y_train[cal_idx], sample_weight=weights[cal_idx])
     cal_prob = calibrator.predict_proba(cal_raw.reshape(-1, 1))[:, 1]
-    threshold, cal_metrics, threshold_mode = choose_operating_threshold(cal_prob, y_train[cal_idx], min_precision=args.min_precision, min_recall=args.min_recall, lower=args.threshold_min, upper=args.threshold_max)
+    threshold, cal_metrics, threshold_mode = choose_operating_threshold(cal_prob, y_train[cal_idx], min_precision=args.min_precision, min_recall=args.min_recall, lower=args.threshold_min, upper=args.threshold_max, max_fpr=args.max_calibration_fpr)
+    calibration_gate_passed = bool(cal_metrics['precision'] >= args.min_precision and cal_metrics['recall'] >= args.min_recall and cal_metrics['false_positive_rate'] <= args.max_calibration_fpr)
 
     # Separately calibrate the structured fast-stage model from OOF predictions.
     # Never use the outer test/frozen/live feed to pick its thresholds.
     fast_calibrator = LogisticRegression(C=10.0, max_iter=1500)
-    fast_calibrator.fit(_logit_probability(oof[cal_idx, 0]), y_train[cal_idx])
+    fast_calibrator.fit(_logit_probability(oof[cal_idx, 0]), y_train[cal_idx], sample_weight=weights[cal_idx])
     fast_cal_prob = fast_calibrator.predict_proba(_logit_probability(oof[cal_idx, 0]))[:, 1]
     fast_low, fast_high, fast_calibration_metadata = choose_fast_thresholds(
         fast_cal_prob, y_train[cal_idx],
@@ -525,7 +605,7 @@ def train(args):
     sample_weight += args.hard_negative_weight * full_oof_hard
     sample_weight += args.hard_negative_fp_weight * hard_false_positive
     sample_weight += args.lexical_hard_negative_weight * lexical_hard
-    sample_weight = np.clip(sample_weight, 1.0, 6.0)
+    sample_weight = np.clip(sample_weight, 1.0, 6.0) * weights
 
     final_models, final_vecs = fit_components(train_df, args, sample_weight=sample_weight, feature_names=feature_names)
     test_components = component_predict(final_models, final_vecs, test_df, feature_names)
@@ -569,10 +649,7 @@ def train(args):
     })
     fast_recall_degradation = max(0.0, float(metrics['recall']) - float(cascade_metrics['recall']))
     fast_precision_degradation = max(0.0, float(metrics['precision']) - float(cascade_metrics['precision']))
-    domain_split_is_valid = (
-        int(metrics.get('domain_overlap_outer_split', 1)) == 0
-        if split_type == 'unseen_domain' else True
-    )
+    domain_split_is_valid = int(metrics.get('domain_overlap_outer_split', 1)) == 0
     exact_split_is_valid = int(metrics.get('exact_overlap_outer_split', 1)) == 0
     fast_path_validated = bool(
         fast_calibration_metadata.get('enabled')
@@ -606,6 +683,10 @@ def train(args):
     joblib.dump(bundle, tmp_model, compress=3)
     os.replace(tmp_model, out / 'model.joblib')
     (out / 'features.json').write_text(json.dumps(feature_names, indent=2))
+    # Persist calibration scores without raw URLs so threshold selection can be
+    # audited without reusing release holdouts for tuning.
+    calibration_sources = train_df['source'].fillna('primary_input').astype(str).iloc[cal_idx].to_numpy() if 'source' in train_df else ['primary_input'] * len(cal_idx)
+    pd.DataFrame({'label': y_train[cal_idx], 'probability': cal_prob, 'source': calibration_sources}).to_csv(out / 'calibration_scores.csv', index=False)
     pd.DataFrame({
         'url': test_df['_normalized_url'], 'label': y_test, 'probability': test_prob,
         'prediction': (test_prob >= threshold).astype(int)
@@ -614,6 +695,8 @@ def train(args):
     # evaluation uses this to construct genuinely unseen-domain samples.
     training_domains = sorted(set(domain_groups(train_df).astype(str)))
     (out / 'training_domains.txt').write_text('\n'.join(training_domains) + ('\n' if training_domains else ''), encoding='utf-8')
+    prepared_domains = sorted(set(domain_groups(df).astype(str)))
+    (out / 'prepared_domains.txt').write_text('\n'.join(prepared_domains) + ('\n' if prepared_domains else ''), encoding='utf-8')
     metadata = {
         'version': version, 'schema_version': SCHEMA_VERSION, 'created_at': datetime.now(timezone.utc).isoformat(),
         'model_components': ['xgboost_structured','lightgbm_structured','extratrees_structured','logistic_url_tfidf','logistic_host_tfidf','linear_svc_url_char','logistic_url_charwb'],
@@ -650,8 +733,14 @@ def train(args):
             'unique_domain_groups_after_exclusions': int(domain_groups(df).nunique()),
         },
         'training_parameters': vars(args),
+        'temporal_source_metadata_sha256': sha256_file(getattr(args, 'temporal_source_metadata', None)),
         'release_gate': args.exclude_domains_csv,
         'training_domain_count': len(training_domains),
+        'domain_grouping_version': DOMAIN_GROUPING_VERSION,
+        'training_domains_sha256': sha256_file(str(out / 'training_domains.txt')),
+        'prepared_domains_sha256': sha256_file(str(out / 'prepared_domains.txt')),
+        'validation_predictions_sha256': sha256_file(str(out / 'validation_predictions.csv')),
+        'calibration_scores_sha256': sha256_file(str(out / 'calibration_scores.csv')),
         'synthetic_training_data': False,
         'realworld_data_policy': 'traceable_sources_only; no synthetic production rows; no fabricated timestamps',
         'frozen_regression_role': 'excluded_only_when_--exclude-frozen_is_set; historical reference otherwise',
@@ -678,21 +767,19 @@ def train(args):
         and frozen_metrics['precision'] >= args.min_frozen_precision
         and frozen_metrics['recall'] >= args.min_frozen_recall
     )
-    outer_domain_gate = (
-        int(metrics.get('domain_overlap_outer_split', 1)) == 0
-        if split_type == 'unseen_domain' else True
-    )
+    outer_domain_gate = int(metrics.get('domain_overlap_outer_split', 1)) == 0
     outer_gate_passed = bool(
         metrics['precision'] >= args.min_precision
         and metrics['recall'] >= args.min_recall
         and outer_domain_gate
         and int(metrics.get('exact_overlap_outer_split', 1)) == 0
     )
-    promotion_eligible = bool(outer_gate_passed and frozen_gate_passed)
+    promotion_eligible = bool(calibration_gate_passed and outer_gate_passed and frozen_gate_passed)
     metadata['promotion_eligible'] = promotion_eligible
     metadata['release_status'] = 'promotion_eligible' if promotion_eligible else 'candidate_not_promoted'
     metadata['promotion_gate'] = {
         'outer_test_passed': outer_gate_passed,
+        'calibration_constraints_passed': calibration_gate_passed,
         'frozen_regression_passed': frozen_gate_passed,
         'frozen_constraints': {
             'accuracy': args.min_frozen_accuracy,
@@ -709,12 +796,6 @@ def train(args):
     (out / 'COMPLETE').write_text('ok\n')
     update_manifest(version)
     promoted = False
-    if args.promote and promotion_eligible:
-        from .registry import promote
-        promote(version)
-        promoted = True
-    elif args.promote and not promotion_eligible:
-        print('Promotion requested but release gates failed; candidate left unpromoted.', flush=True)
     result = {'version': version, 'promoted': promoted, 'promotion_eligible': promotion_eligible, 'metrics': metrics, 'frozen_metrics': frozen_metrics, 'model_dir': str(out)}
     print(json.dumps(result, indent=2))
     return version, metrics
@@ -729,8 +810,10 @@ def build_arg_parser():
     ap.add_argument('--text-C', type=float, default=5.0); ap.add_argument('--host-C', type=float, default=4.0); ap.add_argument('--svc-C', type=float, default=1.0); ap.add_argument('--charwb-C', type=float, default=3.0); ap.add_argument('--meta-C', type=float, default=1.0)
     ap.add_argument('--char-features', type=int, default=30000); ap.add_argument('--word-features', type=int, default=14000); ap.add_argument('--host-features', type=int, default=18000); ap.add_argument('--svc-features', type=int, default=24000); ap.add_argument('--charwb-features', type=int, default=12000); ap.add_argument('--feature-schema-file')
     ap.add_argument('--folds', type=int, default=4); ap.add_argument('--hard-negative-weight', type=float, default=2.0); ap.add_argument('--hard-negative-fp-weight', type=float, default=1.2); ap.add_argument('--lexical-hard-negative-weight', type=float, default=.8); ap.add_argument('--min-precision', type=float, default=.985); ap.add_argument('--min-recall', type=float, default=.95); ap.add_argument('--threshold-min', type=float, default=.10); ap.add_argument('--threshold-max', type=float, default=.75)
+    ap.add_argument('--source-weight', action='append', default=[], metavar='SOURCE=FACTOR', help='Repeat to weight a named training source in OOF, stack, calibration, and final fitting.')
+    ap.add_argument('--max-calibration-fpr', type=float, default=.01, help='Maximum calibration false-positive rate for candidate eligibility.')
     ap.add_argument('--fast-min-negative-purity', type=float, default=.995); ap.add_argument('--fast-max-missed-positive-rate', type=float, default=.005); ap.add_argument('--fast-min-high-precision', type=float, default=.995); ap.add_argument('--fast-min-support', type=int, default=12); ap.add_argument('--fast-max-recall-degradation', type=float, default=.005); ap.add_argument('--fast-max-precision-degradation', type=float, default=.005); ap.add_argument('--suspicious-target-recall', type=float, default=.99); ap.add_argument('--min-frozen-accuracy', type=float, default=.98); ap.add_argument('--min-frozen-precision', type=float, default=.99); ap.add_argument('--min-frozen-recall', type=float, default=.98)
-    ap.add_argument('--threads', type=int, default=max(2, min(8, os.cpu_count() or 4))); ap.add_argument('--require-temporal', action='store_true'); ap.add_argument('--exclude-csv'); ap.add_argument('--exclude-domains-csv'); ap.add_argument('--exclude-frozen', action='store_true'); ap.add_argument('--promote', action='store_true')
+    ap.add_argument('--threads', type=int, default=max(2, min(8, os.cpu_count() or 4))); ap.add_argument('--require-temporal', action='store_true'); ap.add_argument('--temporal-source-metadata'); ap.add_argument('--exclude-csv'); ap.add_argument('--exclude-domains-csv'); ap.add_argument('--exclude-frozen', action='store_true'); ap.add_argument('--promote', action='store_true')
     return ap
 
 def main_cli():

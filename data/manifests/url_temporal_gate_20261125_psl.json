@@ -1,0 +1,43 @@
+{
+  "dataset": "data\\realworld\\evaluations\\phishvn_temporal\\dataset.csv",
+  "checked_at": "2026-11-25T06:24:16.483177+00:00",
+  "source_metadata": "data\\realworld\\evaluations\\phishvn_temporal\\dataset.csv.meta.json",
+  "source_dataset": "PhishVN v5, official URL train/test folds, gold/silver labels only",
+  "source_url": "https://data.mendeley.com/datasets/b97hxbxtpd/5",
+  "license": "CC BY 4.0; attribution required; source data is retained locally and ignored by git",
+  "timestamp_column": "event_time",
+  "timestamp_provenance": "source_attested",
+  "timestamp_semantics": "source-attested collection date of detection or organization certification; scraped_at is retrieval time and excluded",
+  "timestamp_coverage": 1.0,
+  "rows": 4028,
+  "status": "pass",
+  "model_release_status": "not_evaluated",
+  "checks": {
+    "timestamp_column_coverage": true,
+    "source_timestamp_provenance": true,
+    "both_classes_in_train_and_test": true,
+    "zero_exact_url_overlap": true,
+    "zero_registrable_domain_overlap": true,
+    "production_model_trained_before_cutoff": false
+  },
+  "cutoff": "2023-01-01 00:00:00+00:00",
+  "train_rows": 3183,
+  "test_rows": 845,
+  "train_start": "2020-02-08 00:00:00+00:00",
+  "train_end": "2022-12-27 00:00:00+00:00",
+  "test_start": "2023-02-07 00:00:00+00:00",
+  "test_end": "2026-03-25 00:00:00+00:00",
+  "train_class_counts": {
+    "1": 2072,
+    "0": 1111
+  },
+  "test_class_counts": {
+    "1": 487,
+    "0": 358
+  },
+  "domain_grouping_version": "tldextract-5.4.0-bundled-psl-private",
+  "exact_url_overlap": 0,
+  "registrable_domain_overlap": 0,
+  "message": null,
+  "interpretation": "A pass validates this source-attested temporal dataset split. It does not establish temporal readiness of a production model unless that exact model was trained only on pre-cutoff data and evaluated on the held-out rows."
+}

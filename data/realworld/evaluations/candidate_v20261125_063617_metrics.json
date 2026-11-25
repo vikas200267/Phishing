@@ -1,0 +1,153 @@
+{
+  "generated_at": "2026-11-25T06:37:16.104529+00:00",
+  "method": "Model scores measured on frozen regression, legitimate homepage challenge, source-attested PhishVN post-cutoff holdout, the separate LegitPhish v2 domain holdout, and the captured OpenPhish archive. Thresholds are the model artifacts\u2019 frozen thresholds; they were not tuned on these evaluation sets.",
+  "source_attribution": {
+    "phishvn": {
+      "url": "https://data.mendeley.com/datasets/b97hxbxtpd/5",
+      "license": "CC BY 4.0",
+      "authors": [
+        "Thai Nguyen Vu"
+      ]
+    },
+    "legitphish": {
+      "url": "https://data.mendeley.com/datasets/hx4m73v2sf/2",
+      "license": "CC BY 4.0",
+      "authors": [
+        "Rachana Potpelwar",
+        "Uday Kulkarni",
+        "Jaishri Waghmare"
+      ]
+    }
+  },
+  "models": {
+    "v20261125_063617": {
+      "threshold": 0.033683209552273004,
+      "promotion_eligible": false,
+      "training_data_sources": {
+        "phishing": {
+          "path": "data/realworld/evaluations/phishvn_temporal/phishing.csv",
+          "sha256": "aaaf457082ff65f37ba3b4f68c4e782ed4ead01941d2adfe685634ed99c67b17"
+        },
+        "legitimate": {
+          "path": "data/realworld/evaluations/phishvn_temporal/legitimate.csv",
+          "sha256": "5dfa6355fb49e9a2e1329eb457fc107cab99fea4bd0fae21fa728320c67abfc7"
+        },
+        "extra": {
+          "path": "data/realworld/evaluations/phishvn_temporal/combined_extra_full_legitphish.csv",
+          "sha256": "d421aea5b56f5c34e16c89f7d634c4f8d808bf014a2ad24351bb930e1aaa060b"
+        }
+      },
+      "strict_temporal_qualification": false,
+      "strict_temporal_reason": "extra training source contains rows without pre-cutoff source evidence",
+      "evaluations": {
+        "frozen_regression": {
+          "accuracy": 0.9436619718309859,
+          "precision": 0.9519230769230769,
+          "recall": 0.9339622641509434,
+          "f1": 0.9428571428571428,
+          "roc_auc": 0.9912713807088697,
+          "pr_auc": 0.9919999754809293,
+          "brier_score": 0.04862822716751722,
+          "false_positive_rate": 0.04672897196261682,
+          "false_negative_rate": 0.0660377358490566,
+          "tp": 99,
+          "tn": 102,
+          "fp": 5,
+          "fn": 7,
+          "threshold": 0.033683209552273004,
+          "rows_in_source": 213,
+          "valid_http_rows_scored": 213,
+          "invalid_http_rows_excluded": 0,
+          "source_sha256": "fbe3025b8b495ff99529cc3a50dad6ac6f485e9fc35d6db3ac0d78c62b4a4ff2",
+          "rows_overlapping_any_recorded_input_domain": 0
+        },
+        "homepage_challenge": {
+          "accuracy": 0.9523809523809523,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "roc_auc": null,
+          "pr_auc": null,
+          "brier_score": 0.046795596411244186,
+          "false_positive_rate": 0.047619047619047616,
+          "false_negative_rate": 0.0,
+          "tp": 0,
+          "tn": 20,
+          "fp": 1,
+          "fn": 0,
+          "threshold": 0.033683209552273004,
+          "rows_in_source": 21,
+          "valid_http_rows_scored": 21,
+          "invalid_http_rows_excluded": 0,
+          "source_sha256": "9cf20bab77aa775b1219a5bb51142b04832f4856ad732400d3b0f3fd848d9fb9",
+          "rows_overlapping_any_recorded_input_domain": 3
+        },
+        "phishvn_post_cutoff_holdout": {
+          "accuracy": 0.9715302491103203,
+          "precision": 0.9530332681017613,
+          "recall": 1.0,
+          "f1": 0.9759519038076152,
+          "roc_auc": 0.9974563366633596,
+          "pr_auc": 0.9956267642255368,
+          "brier_score": 0.005570350062207224,
+          "false_positive_rate": 0.06741573033707865,
+          "false_negative_rate": 0.0,
+          "tp": 487,
+          "tn": 332,
+          "fp": 24,
+          "fn": 0,
+          "threshold": 0.033683209552273004,
+          "rows_in_source": 845,
+          "valid_http_rows_scored": 843,
+          "invalid_http_rows_excluded": 2,
+          "source_sha256": "29b6dadd70cd8620de341aa99bbe727934d3d8592f4aab2b09b3734e3499ba11",
+          "rows_overlapping_any_recorded_input_domain": 0
+        },
+        "legitphish_domain_holdout": {
+          "accuracy": 0.9965155131264917,
+          "precision": 0.9959621173188459,
+          "recall": 0.9986749116607774,
+          "f1": 0.9973166697298291,
+          "roc_auc": 0.9998265436297739,
+          "pr_auc": 0.9995715824493097,
+          "brier_score": 0.002713491305343148,
+          "false_positive_rate": 0.007466739071409177,
+          "false_negative_rate": 0.001325088339222615,
+          "tp": 13566,
+          "tn": 7311,
+          "fp": 55,
+          "fn": 18,
+          "threshold": 0.033683209552273004,
+          "rows_in_source": 20950,
+          "valid_http_rows_scored": 20950,
+          "invalid_http_rows_excluded": 0,
+          "source_sha256": "8a749b4d40c3447ed7b0b90ec9869803fef7a78f4b5980fa69bfef5749034654",
+          "rows_overlapping_any_recorded_input_domain": 0
+        },
+        "openphish_20261005_archive": {
+          "accuracy": 0.9215686274509803,
+          "precision": 1.0,
+          "recall": 0.9215686274509803,
+          "f1": 0.9591836734693877,
+          "roc_auc": null,
+          "pr_auc": null,
+          "brier_score": 0.07573577272064934,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0784313725490196,
+          "tp": 47,
+          "tn": 0,
+          "fp": 0,
+          "fn": 4,
+          "threshold": 0.033683209552273004,
+          "rows_in_source": 51,
+          "valid_http_rows_scored": 51,
+          "invalid_http_rows_excluded": 0,
+          "source_sha256": "9fcabaf27c44809bc6915bb7939a302e8635731623ed00a367419745f2c81deb",
+          "rows_overlapping_any_recorded_input_domain": 0
+        }
+      }
+    }
+  },
+  "listed_urls_visited": false,
+  "release_decision": "Diagnostic evaluation only; promotion is governed by the release gates."
+}

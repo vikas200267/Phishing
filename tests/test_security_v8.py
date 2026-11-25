@@ -69,7 +69,9 @@ def test_no_hardcoded_benign_seed():
     assert not getattr(local_intel, 'LOCAL_BENIGN_URLS', None)
 
 
-def test_email_without_model_is_unknown():
+def test_email_without_model_is_unknown(monkeypatch):
+    import app.api as api
+    monkeypatch.setattr(api, 'EMAIL_MODEL', None)
     r = client.post('/v1/predict/email', headers={'X-API-Key':'test-inference-key'}, json={'subject':'Account notice','body':'Please review the message'})
     assert r.status_code == 200
     body = r.json()
@@ -97,13 +99,13 @@ def test_production_model_has_no_manual_benign_seed():
 
 
 def test_latest_realworld_evaluation_endpoint():
+    from app.registry import current
     r = client.get('/v1/evaluation/latest', headers={'X-Admin-Key':'test-admin-key'})
     assert r.status_code == 200
     body = r.json()
-    assert body['model_version'] == 'v20261001_104517'
-    assert body['positive_sample']['support'] == 51
-    assert body['positive_sample']['recall'] == 1.0
-    assert body['benign_label_role'] == 'not_requested'
+    assert body['model_version'] == current()
+    assert body['active_model_version'] == current()
+    assert body['generated_at']
     assert body['visited_listed_urls'] is False
 
 

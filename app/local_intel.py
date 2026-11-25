@@ -3,7 +3,7 @@ import csv
 import json
 import os
 import hashlib
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import RLock
 from urllib.parse import urlsplit, urlunsplit
@@ -16,7 +16,11 @@ DEFAULT_SOURCE_DIR=ROOT/'data'/'feeds'/'live'
 SOURCE_DIR=Path(settings.feed_dir) if settings.feed_dir else DEFAULT_SOURCE_DIR
 PHISHING_FEED_PATH=SOURCE_DIR/'openphish.csv'
 URLHAUS_FEED_PATH=SOURCE_DIR/'urlhaus.csv'
-_LOCK=RLock(); LOCAL_PHISHING_URLS=frozenset(); FEED_METADATA={}; _MTIMES={}
+_LOCK=RLock(); LOCAL_PHISHING_URLS=frozenset(); FEED_METADATA={}; _MTIMES={}; _NEXT_EXPIRY=None
+
+
+def _utcnow():
+    return datetime.now(timezone.utc)
 
 
 def canonical_url(url: str)->str:
@@ -99,22 +103,25 @@ def _feed_observation_meta(path: Path):
 
 
 def reload_local_intel()->dict:
-    global LOCAL_PHISHING_URLS,FEED_METADATA,_MTIMES
+    global LOCAL_PHISHING_URLS,FEED_METADATA,_MTIMES,_NEXT_EXPIRY
     feeds=[PHISHING_FEED_PATH,URLHAUS_FEED_PATH]
     with _LOCK:
-        ph=set(); source_meta=[]; now=datetime.now(timezone.utc); newest=None
+        ph=set(); source_meta=[]; now=_utcnow(); newest=None; expiries=[]
         for path in feeds:
             if not path.exists():
                 continue
             info=_feed_observation_meta(path)
-            age=None if info['latest'] is None else max(0.0,(now-info['latest']).total_seconds())
-            fresh=bool(info['latest'] is not None and age <= settings.local_intel_max_age_seconds)
+            signed_age=None if info['latest'] is None else (now-info['latest']).total_seconds()
+            age=None if signed_age is None else max(0.0, signed_age)
+            fresh=bool(signed_age is not None and -300 <= signed_age < settings.local_intel_max_age_seconds)
             source_meta.append({'name':path.stem,'rows':info['rows'],'collected_at_max':info['latest'].isoformat() if info['latest'] else None,'age_seconds':round(age,3) if age is not None else None,'fresh':fresh})
             if fresh:
                 ph.update(_load_set(path,1))
+                expiries.append(info['latest'] + timedelta(seconds=settings.local_intel_max_age_seconds))
             if info['latest'] and (newest is None or info['latest']>newest): newest=info['latest']
         LOCAL_PHISHING_URLS=frozenset(ph)
         _MTIMES={str(p):_mtime(p) for p in feeds}
+        _NEXT_EXPIRY=min(expiries) if expiries else None
         meta={'paths':[str(p) for p in feeds if p.exists()], 'entries':len(LOCAL_PHISHING_URLS), 'sources':source_meta, 'max_age_seconds':settings.local_intel_max_age_seconds}
         if newest:
             meta['collected_at_max']=newest.isoformat(); meta['age_seconds']=round(max(0.0,(now-newest).total_seconds()),3)
@@ -126,9 +133,9 @@ def reload_local_intel()->dict:
 
 
 def maybe_reload_local_intel()->bool:
-    with _LOCK: old=dict(_MTIMES)
+    with _LOCK: old=dict(_MTIMES); expiry=_NEXT_EXPIRY
     current={str(p):_mtime(p) for p in [PHISHING_FEED_PATH,URLHAUS_FEED_PATH]}
-    if current!=old:
+    if current!=old or (expiry is not None and _utcnow() >= expiry):
         reload_local_intel(); return True
     return False
 
@@ -136,12 +143,26 @@ reload_local_intel()
 
 
 def local_phishing(url:str)->bool:
+    with _LOCK:
+        expiry=_NEXT_EXPIRY
+    if expiry is not None and _utcnow() >= expiry:
+        reload_local_intel()
     canonical = canonical_url(url)
     return hashlib.sha256(canonical.encode('utf-8')).digest() in LOCAL_PHISHING_URLS
 
 
 def local_intel_metadata()->dict:
+    maybe_reload_local_intel()
     with _LOCK: result = dict(FEED_METADATA)
+    result['sources'] = [dict(source) for source in result.get('sources', [])]
+    now = _utcnow()
+    for source in result['sources']:
+        if source.get('collected_at_max'):
+            collected=datetime.fromisoformat(source['collected_at_max'])
+            source['age_seconds']=round(max(0.0, (now-collected).total_seconds()),3)
+    if result.get('collected_at_max'):
+        collected=datetime.fromisoformat(result['collected_at_max'])
+        result['age_seconds']=round(max(0.0, (now-collected).total_seconds()),3)
     status_path = SOURCE_DIR / 'refresh_status.json'
     try:
         status = json.loads(status_path.read_text(encoding='utf-8'))

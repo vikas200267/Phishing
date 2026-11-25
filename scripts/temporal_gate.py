@@ -2,10 +2,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from app.domain import DOMAIN_GROUPING_VERSION, registrable_domain
+from app.features import normalize_url
 
 
 def main() -> int:
@@ -96,19 +103,21 @@ def main() -> int:
             report['test_class_counts'] = {k: int(v) for k, v in test_counts.items()}
             both_classes = len(train_counts) >= 2 and len(test_counts) >= 2 and min(train_counts) >= args.min_class_rows and min(test_counts) >= args.min_class_rows
         report['checks']['both_classes_in_train_and_test'] = both_classes
-        exact_overlap = 0
+        exact_overlap = None
+        domain_overlap = None
         if 'url' in df.columns:
-            train_urls = set(train.url.dropna().astype(str).str.strip())
-            test_urls = set(test.url.dropna().astype(str).str.strip())
+            train_urls = set(train.url.dropna().astype(str).map(normalize_url))
+            test_urls = set(test.url.dropna().astype(str).map(normalize_url))
             exact_overlap = len(train_urls & test_urls)
+            train_domains = {registrable_domain(u) for u in train_urls}
+            test_domains = {registrable_domain(u) for u in test_urls}
+            train_domains.discard(''); test_domains.discard('')
+            if train_domains and test_domains:
+                domain_overlap = len(train_domains & test_domains)
+            report['domain_grouping_version'] = DOMAIN_GROUPING_VERSION
         report['exact_url_overlap'] = exact_overlap
         report['checks']['zero_exact_url_overlap'] = exact_overlap == 0
-        domain_overlap = None
-        if 'registrable_domain' in df.columns:
-            train_domains = set(train.registrable_domain.dropna().astype(str))
-            test_domains = set(test.registrable_domain.dropna().astype(str))
-            domain_overlap = len(train_domains & test_domains)
-            report['registrable_domain_overlap'] = domain_overlap
+        report['registrable_domain_overlap'] = domain_overlap
         report['checks']['zero_registrable_domain_overlap'] = domain_overlap == 0
         all_data_checks = provenance_ok and both_classes and exact_overlap == 0 and domain_overlap == 0 and len(train) >= args.min_rows and len(test) >= args.min_rows
         report['status'] = 'pass' if all_data_checks else 'not_ready'

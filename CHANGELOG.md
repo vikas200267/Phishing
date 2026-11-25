@@ -1,3 +1,14 @@
+## 2026-11-25 — model and release-gate investigation
+
+- Reproduced the active model's ordinary-site false positives and trained two
+  source-weighted challengers. Neither passed the release gates.
+- Bound promotion to candidate-specific domain, calibration, and temporal
+  evidence; prevented URL approval from enabling email blocking.
+- Fixed feed expiry for unchanged files, active-model evaluation selection,
+  homepage blocking eligibility, and positive-only feed reporting.
+- Added offline public-suffix grouping, a registry-based diagnostic probe,
+  source weighting, and faster training-threshold selection.
+
 ## Final audited realtime release — v20261001_104517
 
 - Removed stale/duplicate captured evaluation artifacts that could be confused with current evidence.

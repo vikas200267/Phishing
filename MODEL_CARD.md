@@ -2,6 +2,11 @@
 
 ## Production model
 
+November 25, 2026: The model's ordinary-site false positives remain unresolved.
+Two new challengers failed release checks; see `REAL_WORLD_RESULTS_2026-11-25.md`.
+Its scores should not be interpreted as calibrated probabilities for the
+current Internet population, and URL model-only blocking remains disabled.
+
 `v20261001_104517` is the only promoted artifact in the final release package. It was trained from the two supplied labeled URL datasets only. Manual `benign_seed` rows and synthetic examples are not part of its training input.
 
 ## Model architecture

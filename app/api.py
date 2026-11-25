@@ -39,7 +39,7 @@ from .trusted_homepages import is_trusted_official_homepage
 from .reputation import reload_verified_feedback, verified_verdicts
 from .threat_intel import ThreatIntel
 from .url_model import load_bundle
-from .registry import artifact_sha256, verify_artifact_integrity
+from .registry import validate_release_approval, verify_artifact_integrity
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = ROOT / 'models'
@@ -77,38 +77,7 @@ def load_current():
     model = load_bundle(MODEL_DIR / pointer / 'model.joblib')
     blocking_approval = None
     if settings.ml_blocking_enabled:
-        approval_path = MODEL_DIR / pointer / 'BLOCKING_APPROVED.json'
-        try:
-            blocking_approval = json.loads(approval_path.read_text(encoding='utf-8'))
-        except (OSError, ValueError) as exc:
-            raise RuntimeError('ML_BLOCKING_ENABLED requires a valid promotion-generated BLOCKING_APPROVED.json') from exc
-        challenge = blocking_approval.get('legitimate_challenge', {})
-        approval_gates = blocking_approval.get('passed_gates', {})
-        required_approval_gates = {
-            'legitimate_challenge_zero_false_positives',
-            'legitimate_challenge_minimum_coverage',
-            'legitimate_challenge_training_disjoint',
-            'legitimate_challenge_provenance',
-            'legitimate_challenge_no_duplicate_urls',
-            'outer_precision', 'outer_recall', 'frozen_precision', 'frozen_recall',
-        }
-        if (
-            blocking_approval.get('schema_version') != 1
-            or blocking_approval.get('approved') is not True
-            or blocking_approval.get('model_version') != pointer
-            or blocking_approval.get('model_sha256') != artifact_sha256(MODEL_DIR / pointer / 'model.joblib')
-            or blocking_approval.get('challenge_sha256') != challenge.get('challenge_sha256')
-            or not isinstance(approval_gates, dict)
-            or not required_approval_gates.issubset(approval_gates)
-            or not all(value is True for value in approval_gates.values())
-            or challenge.get('unique_registrable_domains', 0) < 15
-            or challenge.get('false_positives', 1) != 0
-            or challenge.get('exact_training_overlap', 1) != 0
-            or challenge.get('domain_training_overlap', 1) != 0
-            or challenge.get('observed_at_coverage', 0) < 0.8
-            or challenge.get('provenance_sha256_match') is not True
-        ):
-            raise RuntimeError('ML blocking approval does not match the active model and required challenge gates')
+        blocking_approval = validate_release_approval(pointer)
     email_path = MODEL_DIR / pointer / 'email_model.joblib'
     email_model = None
     if email_path.exists():
@@ -613,28 +582,29 @@ def ready():
 
 
 @app.get('/v1/evaluation/latest', dependencies=[Depends(require_admin_key)])
-def latest_evaluation():
-    """Return the most recent stored real-world evaluation artifact.
+def latest_evaluation(model_version: str | None = None):
+    """Return the newest dated evaluation for the active or requested model.
 
     This endpoint only exposes recorded evaluation evidence; it never generates
     simulated metrics or claims that a threat-feed-only sample estimates precision.
     """
     root = ROOT / 'artifacts'
+    _, active_version, *_ = _current_state()
+    requested_version = model_version or active_version
     candidates = []
     for path in root.rglob('metrics.json') if root.exists() else []:
         if 'realworld' in str(path).lower():
             try:
-                candidates.append(path)
-            except Exception:
-                pass
+                data = json.loads(path.read_text(encoding='utf-8'))
+                if data.get('model_version') == requested_version and data.get('generated_at'):
+                    candidates.append((str(data['generated_at']), path, data))
+            except (OSError, ValueError, AttributeError):
+                continue
     if not candidates:
-        raise HTTPException(status_code=404, detail='no stored real-world evaluation found')
-    latest = max(candidates, key=lambda x: x.stat().st_mtime_ns)
-    try:
-        data = json.loads(latest.read_text(encoding='utf-8'))
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f'evaluation artifact unreadable: {type(exc).__name__}')
+        raise HTTPException(status_code=404, detail='no dated real-world evaluation found for the requested model')
+    _, latest, data = max(candidates, key=lambda item: item[0])
     data['artifact'] = str(latest.relative_to(ROOT))
+    data['active_model_version'] = active_version
     return data
 
 
@@ -702,6 +672,8 @@ async def predict(req: URLRequest, x_admin_key: str | None = Header(default=None
         }
 
     trusted_homepage = apply_official_homepage_policy(result, req.url, stage)
+    if stage not in {'verified_feedback', 'local_intel'}:
+        result['model_calibration_scope'] = 'training_distribution_only'
     if stage not in {'verified_feedback', 'local_intel'} and not settings.ml_blocking_enabled and not trusted_homepage:
         # Model scores can be useful for triage while still being unsafe as an
         # automatic block decision. Keep the score and expose the abstention.
@@ -710,7 +682,7 @@ async def predict(req: URLRequest, x_admin_key: str | None = Header(default=None
             'decision': 'ml_advisory_only_realworld_gate_required',
             'risk_band': 'medium', 'blocking_eligible': False,
         })
-    elif stage not in {'verified_feedback', 'local_intel'}:
+    elif stage not in {'verified_feedback', 'local_intel'} and not trusted_homepage:
         result['blocking_eligible'] = True
 
     # Shadow models are sampled, never executed for every request, and their
@@ -789,9 +761,11 @@ async def batch(req: BatchRequest):
             verdict, decision = classify_score(p, model)
             item = {'url': u, 'verdict': verdict, 'binary_verdict': verdict if verdict in {'phishing','benign'} else 'unknown', 'decision': decision, 'risk_band': risk_band(p, model), 'risk_score': round(p,6), 'score_type': 'calibrated', 'source': src, 'inference_stage': stage}
         trusted_homepage = apply_official_homepage_policy(item, u, stage)
+        if stage not in {'verified_feedback', 'local_intel'}:
+            item['model_calibration_scope'] = 'training_distribution_only'
         if stage not in {'verified_feedback', 'local_intel'} and not settings.ml_blocking_enabled and not trusted_homepage:
             item.update({'verdict': 'suspicious', 'binary_verdict': 'unknown', 'decision': 'ml_advisory_only_realworld_gate_required', 'risk_band': 'medium', 'blocking_eligible': False})
-        elif stage not in {'verified_feedback', 'local_intel'}:
+        elif stage not in {'verified_feedback', 'local_intel'} and not trusted_homepage:
             item['blocking_eligible'] = True
         results.append(item)
         if prom.PREDICTIONS: prom.PREDICTIONS.labels(item['binary_verdict']).inc()
@@ -846,11 +820,9 @@ async def predict_email(req: EmailRequest):
             'features': rules,
             'model_version': model_version,
         }
-    ev, edecision = classify_email_score(float(score))
-    eb = 'phishing' if score >= settings.email_phishing_threshold else 'benign'
-    if not settings.ml_blocking_enabled:
-        ev, eb, edecision = 'suspicious', 'unknown', 'ml_advisory_only_realworld_gate_required'
-    return {'verdict': ev, 'binary_verdict': eb, 'decision': edecision, 'risk_score': round(float(score),6), 'email_ml_score': ep, 'email_threshold': settings.email_phishing_threshold, 'email_calibrated': calibrated, 'blocking_eligible': settings.ml_blocking_enabled, 'url_scores': [round(float(x),6) for x in url_probs], 'source': source, 'features': rules, 'model_version': model_version}
+    # The URL release gate does not validate an email classifier. Email remains
+    # advisory until a separate email-specific release gate exists and passes.
+    return {'verdict': 'suspicious', 'binary_verdict': 'unknown', 'decision': 'email_ml_advisory_only', 'risk_score': round(float(score),6), 'email_ml_score': ep, 'email_threshold': settings.email_phishing_threshold, 'email_calibrated': calibrated, 'blocking_eligible': False, 'url_scores': [round(float(x),6) for x in url_probs], 'source': source, 'features': rules, 'model_version': model_version}
 
 
 @app.post('/v1/feedback', status_code=202, dependencies=[Depends(require_admin_key)])

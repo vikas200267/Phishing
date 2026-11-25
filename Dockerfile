@@ -19,6 +19,8 @@ RUN pip install --no-cache-dir -r requirements.lock
 COPY app ./app
 COPY models ./models
 COPY data/patterns.json ./data/patterns.json
+COPY data/realworld/trusted_homepages.csv ./data/realworld/trusted_homepages.csv
+COPY data/realworld/legitimate_challenge.csv ./data/realworld/legitimate_challenge.csv
 COPY scripts/refresh_feeds.py ./scripts/refresh_feeds.py
 COPY scripts/build_realworld_corpus.py ./scripts/build_realworld_corpus.py
 

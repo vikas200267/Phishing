@@ -14,3 +14,4 @@ prometheus-client==0.25.0
 orjson==3.11.9
 uvloop==0.22.1
 httptools==0.8.0
+tldextract==5.4.0

@@ -15,6 +15,11 @@ Shadow model:     disabled by default
 Serving release:  clean-realtime-v1
 ```
 
+The November 25 investigation trained two additional challengers and refreshed
+OpenPhish, but neither challenger passed the release checks. The active model's
+ordinary-site false positives remain unresolved. Measurements and their limits
+are in [REAL_WORLD_RESULTS_2026-11-25.md](REAL_WORLD_RESULTS_2026-11-25.md).
+
 ### Blocking policy
 
 `ML_BLOCKING_ENABLED` defaults to `false`. Model-only URL and email predictions
@@ -24,6 +29,12 @@ threat-feed hits remain actionable. Do not enable automated blocking until a
 candidate passes an independently sourced legitimate-domain challenge set and
 the release gates. The bundled evaluation scores are dataset-specific and do
 not establish real-world accuracy.
+
+The URL model's probability calibration reflects its training distribution;
+it is not validated for arbitrary current websites. Responses expose this as
+`model_calibration_scope: training_distribution_only`. Email remains advisory
+even if URL blocking is later approved, because the email model has a separate
+evaluation and has not passed an email-specific blocking gate.
 
 The promotion command also checks `data/realworld/legitimate_challenge.csv`.
 It contains 21 unique organization homepages, including the six named in the
@@ -181,8 +192,7 @@ python -m app.train \
   --threshold-max 0.45 \
   --exclude-csv data/realworld/archive/openphish_20261005_unseen.csv \
   --exclude-domains-csv data/release_gate_v1.csv \
-  --exclude-frozen \
-  --promote
+  --exclude-frozen
 ```
 
 For options:
@@ -190,6 +200,15 @@ For options:
 ```bash
 python -m app.train --help
 ```
+
+For `--require-temporal`, provide `--temporal-source-metadata` as JSON with
+`timestamp_provenance` (`source_attested` or `source_provided`),
+`timestamp_semantics`, `timestamp_column`, and `source_files` entries
+containing each input's `path` and SHA-256. Every retained row must have the
+specified event time; later rows sharing a training domain are excluded from
+the temporal holdout. The metadata must describe source event times, not the
+date the file was downloaded. This training split alone is not release
+approval; `scripts/promote_if_gates.py` checks separate model-bound evidence.
 
 ## Promotion gates
 
@@ -205,14 +224,24 @@ outer precision  >= 98%
 outer recall     >= 97%
 frozen accuracy  >= 98%
 frozen precision >= 99%
-frozen recall    >= 95%
+frozen recall    >= 98%
+temporal precision >= 98%, recall >= 97%, false-positive rate <= 2%
 ```
+
+Promotion also requires a candidate-specific, hash-verified training-domain
+record, a disjoint homepage challenge, a source-attested chronological test
+bound to the model's recorded training inputs, and non-regression against the
+active model. Training never promotes a model directly. Domain grouping uses a
+deterministic bundled public-suffix snapshot, including private hosting suffixes.
+Previous candidates without these evidence files cannot pass the new gate.
 
 Rollback:
 
 ```bash
 python -m scripts.model_registry rollback
 ```
+
+Rollback requires the target model to have a valid current release approval.
 
 ## Run the API
 

@@ -17,6 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 import sys
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from app.domain import registrable_domain
+from app.policy import valid_http_url
 OPENPHISH = 'https://www.openphish.com/feed.txt'
 OPENPHISH_MIRROR = 'https://raw.githubusercontent.com/openphish/public_feed/refs/heads/main/feed.txt'
 URLHAUS_TEMPLATE = 'https://urlhaus-api.abuse.ch/v2/files/exports/{key}/recent.csv'
@@ -68,21 +70,58 @@ def host(u: str) -> str:
 
 
 def registrable(u: str) -> str:
-    h = host(u)
-    parts = [x for x in h.split('.') if x]
-    if len(parts) <= 2:
-        return h
-    suffix2 = '.'.join(parts[-2:])
-    if suffix2 in {'co.uk','org.uk','ac.uk','gov.uk','com.au','net.au','org.au','co.in','com.br','co.jp','co.nz','co.za'}:
-        return '.'.join(parts[-3:])
-    return '.'.join(parts[-2:])
+    return registrable_domain(u)
+
+
+def overlaps_training_domain(u: str, training_domains: set[str]) -> bool:
+    """Conservatively support both legacy and current model domain lists."""
+    try:
+        h = host(u).encode('idna').decode('ascii')
+    except UnicodeError:
+        return True
+    if not h:
+        return True
+    labels = h.split('.')
+    # A legacy model might have recorded a broader suffix such as github.io.
+    # Exclude every subdomain under it instead of claiming it is unseen.
+    return any('.'.join(labels[i:]) in training_domains for i in range(len(labels)))
 
 
 def load_training_domains(model_version: str) -> set[str]:
     path = ROOT / 'models' / model_version / 'training_domains.txt'
     if not path.exists():
         raise RuntimeError(f'{path} is missing; model cannot make a leakage-controlled live evaluation')
-    return {line.strip().lower() for line in path.read_text(encoding='utf-8').splitlines() if line.strip()}
+    return {line.strip().lower().encode('idna').decode('ascii') for line in path.read_text(encoding='utf-8').splitlines() if line.strip()}
+
+
+def load_input_domains(model_version: str) -> set[str]:
+    """Reserve every recorded input domain, including the model's outer split."""
+    import pandas as pd
+    from app.train import url_series
+    model_dir = ROOT / 'models' / model_version
+    metadata = json.loads((model_dir / 'metadata.json').read_text(encoding='utf-8'))
+    sources = metadata.get('data_sources') or {}
+    parameters = metadata.get('training_parameters') or {}
+    domains = set()
+    for name in ('phishing', 'legitimate', 'extra'):
+        entry = sources.get(name)
+        path_text = entry.get('path') if isinstance(entry, dict) else parameters.get(name)
+        expected = entry.get('sha256') if isinstance(entry, dict) else entry
+        if not path_text:
+            if name != 'extra':
+                raise RuntimeError(f'{name} training source is not recorded')
+            continue
+        path = Path(str(path_text).replace('\\', '/'))
+        if not path.is_absolute():
+            path = ROOT / path
+        if not path.is_file() or not expected or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            raise RuntimeError(f'{name} training source missing or changed; cannot establish input disjointness')
+        frame = pd.read_csv(path, low_memory=False)
+        domains.update(registrable_domain(u) for u in url_series(frame).dropna().astype(str))
+    domains.discard('')
+    if not domains:
+        raise RuntimeError('Recorded inputs contain no usable domain groups')
+    return domains
 
 
 def evaluate(model, urls: list[str], label: int, chunk: int = 512):
@@ -104,13 +143,14 @@ def evaluate(model, urls: list[str], label: int, chunk: int = 512):
 def metric_summary(c):
     tp, fp, fn, tn = [int(c[k]) for k in ('tp','fp','fn','tn')]
     total = tp + fp + fn + tn
+    has_both_classes = (tp + fn) > 0 and (tn + fp) > 0
     return {
         'support': total,
-        'accuracy': (tp + tn) / max(1, total),
-        'precision': tp / max(1, tp + fp),
-        'recall': tp / max(1, tp + fn),
-        'f1': 2 * tp / max(1, 2 * tp + fp + fn),
-        'false_positive_rate': fp / max(1, fp + tn),
+        'accuracy': (tp + tn) / total if has_both_classes else None,
+        'precision': tp / (tp + fp) if has_both_classes and tp + fp else None,
+        'recall': tp / (tp + fn) if tp + fn else None,
+        'f1': 2 * tp / (2 * tp + fp + fn) if has_both_classes and 2 * tp + fp + fn else None,
+        'false_positive_rate': fp / (fp + tn) if fp + tn else None,
         'tp': tp, 'tn': tn, 'fp': fp, 'fn': fn,
     }
 
@@ -126,6 +166,7 @@ def main():
     ap.add_argument('--captured-positive-csv', default='', help='Replay a previously captured real threat-feed CSV instead of downloading live feeds. No listed URL is visited.')
     ap.add_argument('--captured-benign-csv', default='', help='Replay a previously captured independently verified benign CSV instead of downloading Tranco. label=0 required.')
     ap.add_argument('--model-version', default='', help='Evaluate a specific registered or candidate model; defaults to models/CURRENT.')
+    ap.add_argument('--allow-training-domains-only', action='store_true', help='Permit a weaker legacy replay when original hashed input files are unavailable.')
     args = ap.parse_args()
 
     from app.registry import current
@@ -134,6 +175,13 @@ def main():
     version = args.model_version or current()
     model = load_bundle(ROOT / 'models' / version / 'model.joblib')
     training_domains = load_training_domains(version)
+    input_exclusion = 'all_recorded_inputs'
+    try:
+        training_domains |= load_input_domains(version)
+    except (OSError, ValueError, RuntimeError) as exc:
+        if not args.allow_training_domains_only:
+            raise SystemExit(str(exc)) from exc
+        input_exclusion = 'training_domains_only; recorded inputs unavailable or changed'
     out = ROOT / args.out
     out.mkdir(parents=True, exist_ok=True)
     now = datetime.now(timezone.utc).isoformat()
@@ -147,14 +195,15 @@ def main():
         df = __import__('pandas').read_csv(cp)
         if 'url' not in df.columns:
             raise SystemExit('Captured positive CSV must contain a url column')
-        positives = [u for u in df['url'].dropna().astype(str).tolist() if registrable(u) not in training_domains]
-        sources.append({'name':'captured-realworld-positive','path':str(cp),'sha256':hashlib.sha256(cp.read_bytes()).hexdigest(),'entries_seen':len(df),'unseen_domains_available':len(positives),'listed_urls_visited':False})
+        source_urls = df['url'].dropna().astype(str).tolist()
+        positives = [u for u in source_urls if valid_http_url(u) and not overlaps_training_domain(u, training_domains)]
+        sources.append({'name':'captured-realworld-positive','path':str(cp),'sha256':hashlib.sha256(cp.read_bytes()).hexdigest(),'entries_seen':len(df),'invalid_http_urls':sum(not valid_http_url(u) for u in source_urls),'unseen_domains_available':len(positives),'listed_urls_visited':False})
     else:
         for name, endpoint in [('OpenPhish', OPENPHISH), ('OpenPhish mirror', OPENPHISH_MIRROR)]:
             try:
                 raw, resolved = fetch(endpoint, args.timeout)
                 extracted = urls_from_bytes(raw)
-                unseen = [u for u in extracted if registrable(u) not in training_domains]
+                unseen = [u for u in extracted if valid_http_url(u) and not overlaps_training_domain(u, training_domains)]
                 positives.extend(unseen)
                 sources.append({'name': name, 'url': resolved, 'sha256': hashlib.sha256(raw).hexdigest(), 'bytes': len(raw), 'entries_seen': len(extracted), 'unseen_domains_available': len(unseen)})
                 if unseen:
@@ -172,12 +221,14 @@ def main():
             uh = []
             for row in reader:
                 u = (row.get('url') or row.get('URL') or '').strip()
-                if re.match(r'^https?://[^\s]+$', u, re.I) and registrable(u) not in training_domains:
+                if valid_http_url(u) and not overlaps_training_domain(u, training_domains):
                     uh.append(u)
             positives.extend(uh)
-            urlhaus_info = {'enabled': True, 'url': resolved, 'sha256': hashlib.sha256(raw).hexdigest(), 'entries_seen': len(uh)}
+            parsed = urlsplit(resolved)
+            urlhaus_info = {'enabled': True, 'source': f'{parsed.scheme}://{parsed.hostname}', 'sha256': hashlib.sha256(raw).hexdigest(), 'entries_seen': len(uh)}
         except Exception as exc:
-            urlhaus_info = {'enabled': True, 'error': f'{type(exc).__name__}: {exc}'}
+            # Provider exceptions can include the authenticated URL.
+            urlhaus_info = {'enabled': True, 'error_type': type(exc).__name__}
 
     positive = list(dict.fromkeys(positives))[:args.limit_positive]
     if not positive:
@@ -195,7 +246,7 @@ def main():
         bdf=__import__('pandas').read_csv(bd)
         if 'url' not in bdf.columns or 'label' not in bdf.columns:
             raise SystemExit('Captured benign CSV must contain url and label columns')
-        supplied=[u for u,l in zip(bdf['url'].astype(str),bdf['label']) if int(float(l))==0 and registrable(u) not in training_domains]
+        supplied=[u for u,l in zip(bdf['url'].astype(str),bdf['label']) if int(float(l))==0 and valid_http_url(u) and not overlaps_training_domain(u, training_domains)]
         benign_rows, benign_c = evaluate(model, list(dict.fromkeys(supplied))[:args.limit_benign], 0)
         benign_role='independently_verified_captured_labels'
         sources.append({'name':'captured-realworld-benign','path':str(bd),'sha256':hashlib.sha256(bd.read_bytes()).hexdigest(),'entries_seen':len(bdf),'unseen_domains_available':len(supplied),'role':'independently_verified'})
@@ -204,7 +255,7 @@ def main():
         with bd.open(newline='', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             supplied = [r['url'].strip() for r in reader if (r.get('label') or '').strip() == '0' and r.get('url')]
-        supplied = [u for u in supplied if registrable(u) not in training_domains]
+        supplied = [u for u in supplied if valid_http_url(u) and not overlaps_training_domain(u, training_domains)]
         benign_rows, benign_c = evaluate(model, list(dict.fromkeys(supplied))[:args.limit_benign], 0)
         benign_role = 'independently_verified_operator_labels'
     elif args.limit_benign <= 0:
@@ -212,7 +263,7 @@ def main():
     else:
         tr_raw, tr_resolved = fetch(TRANCO, args.timeout)
         tr_urls = tranco_urls(tr_raw)
-        benign = [u for u in tr_urls if registrable(u) not in training_domains and norm(u) not in {norm(x) for x in positive}][:args.limit_benign]
+        benign = [u for u in tr_urls if valid_http_url(u) and not overlaps_training_domain(u, training_domains) and norm(u) not in {norm(x) for x in positive}][:args.limit_benign]
         benign_rows, benign_c = evaluate(model, benign, 0)
         benign_role = 'Tranco popularity proxy; not a ground-truth benign label'
         sources.append({'name':'Tranco latest','url':tr_resolved,'sha256':hashlib.sha256(tr_raw).hexdigest(),'bytes':len(tr_raw),'entries_seen':len(tr_urls),'unseen_domains_available':len(benign),'role':'benign-proxy'})
@@ -223,10 +274,11 @@ def main():
         'model_version': version,
         'threshold': float(model.threshold),
         'training_domain_count': len(training_domains),
+        'input_domain_exclusion': input_exclusion,
         'positive_sample': metric_summary(pos_c),
         'benign_sample': metric_summary(benign_c),
         'benign_label_role': benign_role,
-        'combined_metrics_only_if_benign_labels_are_ground_truth': metric_summary(dict(combined)) if benign_role == 'independently_verified_operator_labels' else None,
+        'combined_metrics_only_if_benign_labels_are_ground_truth': metric_summary(dict(combined)) if benign_role in {'independently_verified_operator_labels', 'independently_verified_captured_labels'} else None,
         'urlhaus': urlhaus_info,
         'sources': sources,
         'visited_listed_urls': False,

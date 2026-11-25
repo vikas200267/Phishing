@@ -16,6 +16,8 @@ if str(ROOT) not in sys.path:
 from app.policy import valid_http_url
 from app.train import evaluate, url_series
 from app.url_model import load_bundle
+from scripts.model_temporal_evidence import verify_model_temporal_inputs
+from scripts.realworld_eval import load_input_domains, load_training_domains, overlaps_training_domain
 
 
 DATASETS = {
@@ -35,7 +37,7 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def score(model, path: Path, chunk_size: int) -> dict:
+def score(model, path: Path, chunk_size: int, input_domains: set[str] | None = None) -> dict:
     frame = pd.read_csv(path, low_memory=False)
     if 'label' not in frame.columns or not any(column in frame.columns for column in ('url', '_normalized_url', 'domain_name')):
         raise ValueError(f'{path} must contain labels and URL fields')
@@ -55,6 +57,7 @@ def score(model, path: Path, chunk_size: int) -> dict:
         'valid_http_rows_scored': int(len(urls)),
         'invalid_http_rows_excluded': invalid,
         'source_sha256': sha256(path),
+        'rows_overlapping_any_recorded_input_domain': sum(overlaps_training_domain(u, input_domains) for u in urls) if input_domains is not None else None,
     })
     return metrics
 
@@ -80,13 +83,18 @@ def main() -> int:
         model = load_bundle(model_dir/'model.joblib')
         metadata_path = model_dir/'metadata.json'
         metadata = json.loads(metadata_path.read_text(encoding='utf-8'))
+        try:
+            input_domains = load_input_domains(version) | load_training_domains(version)
+        except (OSError, ValueError, RuntimeError):
+            input_domains = None
+        temporal_evidence = verify_model_temporal_inputs(model_dir)
         results[version] = {
             'threshold': float(model.threshold),
             'promotion_eligible': bool(metadata.get('promotion_eligible')),
             'training_data_sources': metadata.get('data_sources'),
-            'strict_temporal_qualification': False,
-            'strict_temporal_reason': 'The candidate includes source rows without authentic per-URL timestamps (and may include data collected after the PhishVN cutoff).',
-            'evaluations': {name: score(model, path, args.chunk_size) for name, path in DATASETS.items() if path.exists()},
+            'strict_temporal_qualification': temporal_evidence['qualified'],
+            'strict_temporal_reason': temporal_evidence.get('reason'),
+            'evaluations': {name: score(model, path, args.chunk_size, input_domains) for name, path in DATASETS.items() if path.exists()},
         }
     report = {
         'generated_at': datetime.now(timezone.utc).isoformat(),
@@ -97,7 +105,7 @@ def main() -> int:
         },
         'models': results,
         'listed_urls_visited': False,
-        'release_decision': 'Neither cross-source candidate is promoted; frozen, homepage, and source-shift metrics disagree materially.',
+        'release_decision': 'Diagnostic evaluation only; promotion is governed by the release gates.',
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2), encoding='utf-8')
