@@ -60,6 +60,16 @@ smoke challenger (`v20261125_070600`, five trees per structured model) scored
 55/106 phishing misses on the reused frozen set. It is not promoted and is not
 a production-quality training run.
 
+A substantive mixed-source challenger using the corrected split and
+120/100/120 trees (`v20261125_071843`) also failed release: on the reused
+frozen set it had 2/107 benign false positives and 9/106 phishing misses; on
+the 21-homepage challenge it had two false positives. It detected 48/51 URLs
+in the October 5 OpenPhish archive and 267/276 input-domain-disjoint URLs in
+the November 25 positive-only feed snapshot. On the LegitPhish holdout it had 25/7,366
+benign false positives and 6/13,584 phishing misses. These datasets have been
+repeatedly used during development and are not fresh independent acceptance
+tests. The model includes undated inputs and is not temporally qualified.
+
 ## Current feed replay and registered-domain proxy
 
 OpenPhish was refreshed at 06:25 UTC on November 25, receiving 300 entries.

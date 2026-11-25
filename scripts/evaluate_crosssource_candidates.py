@@ -105,6 +105,7 @@ def main() -> int:
         },
         'models': results,
         'listed_urls_visited': False,
+        'evaluation_status': 'These populations have been examined repeatedly during model development; they are not a fresh independent acceptance test.',
         'release_decision': 'Diagnostic evaluation only; promotion is governed by the release gates.',
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
